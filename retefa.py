@@ -142,6 +142,7 @@ class ReteFA:
 
         out = None
 
+
         """
         Costruzione della struttura dati in ordine tale da verificare che i riferimenti incrociati fra elementi della struttura esistano
         Costruiamo gli oggetti nel seguente ordine. Segno con * dove fare il controllo degli errori:
