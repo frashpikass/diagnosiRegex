@@ -47,7 +47,7 @@ class Stato(object):
     Classe che descrive uno stato di un comportamento e le sue transizioni uscenti.
     """
 
-    def __init__(self, nome: str, transizioniUscenti: List[Transizione] = None):
+    def __init__(self, nome: str, transizioniUscenti: List[Transizione] = []):
         self.nome = nome
         self.transizioniUscenti = transizioniUscenti
 
@@ -270,9 +270,14 @@ class ReteFA:
                     raise KeyError(f'Il comportamento {nomeComp} non è stato definito nella rete')
 
             # 8. Compilazione delle transizioni uscenti in ciascuno stato
-            # todo
-
-            print("ciao")
+            # Scorriamo i comportamenti della ReteFA
+            for comport in out.comportamenti:
+                # Scorriamo le transizioni del comportamento
+                transiz: Transizione
+                for transiz in comport.transizioni:
+                    # Aggiungiamo la transizione corrente alle transizioni uscenti
+                    # dello stato0 della transizione corrente
+                    transiz.stato0.addTransizioneUscente(transiz)
 
         return out
 
