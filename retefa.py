@@ -64,7 +64,7 @@ class Comportamento(object):
     Classe che descrive un comportamento della rete FA, i suoi stati, le sue transizioni e lo stato iniziale.
     """
 
-    def __init__(self, nome, stati: List[Stato] = None, transizioni: List[Transizione] = None, statoIniziale: Stato = None):
+    def __init__(self, nome, stati: List[Stato] = [], transizioni: List[Transizione] = [], statoIniziale: Stato = None):
         self.nome = nome
         self.stati = stati
         self.transizioni = transizioni
@@ -113,7 +113,7 @@ class ReteFA:
     Classe principale di questo file, descrive complessivamente una rete FA, i suoi comportamenti e i suoi link.
     """
 
-    def __init__(self, nome: str, comportamenti: List[Comportamento] = None, links: List[Link] = None):
+    def __init__(self, nome: str, comportamenti: List[Comportamento] = [], links: List[Link] = []):
         """
         :type nome: String
         :type comportamenti: Comportamento[]
@@ -123,7 +123,8 @@ class ReteFA:
         self.comportamenti = comportamenti
         self.links = links
 
-    def validateXML(self, xml) -> bool:
+    @staticmethod
+    def validateXML(xml) -> bool:
         """
         Metodo per validare l'XML in input
         :return: true se l'XML è valido
@@ -133,15 +134,15 @@ class ReteFA:
         schema = xmlschema.XMLSchema(xsdPath)
         return schema.is_valid(xml)
 
-    def fromXML(self, xml):
+    @staticmethod
+    def fromXML(xmlPath):
         """
         Costruisce la rete FA a partire dai dati contenuti nell'XML che la descrive
-        :param xml: xml che descrive la rete FA
+        :param xmlPath: xml che descrive la rete FA
         :return: la reteFA costruita a partire dall'XML
         """
 
         out = None
-
 
         """
         Costruzione della struttura dati in ordine tale da verificare che i riferimenti incrociati fra elementi della 
@@ -163,8 +164,8 @@ class ReteFA:
         import xml.etree as ET
 
         # Validazione dell'XML
-        if self.validateXML(xml):
-            tree = ET.ElementTree.parse(source=xml)
+        if ReteFA.validateXML(xmlPath):
+            tree = ET.ElementTree.parse(source=xmlPath)
             root = tree.getroot()
 
             # 0. Costruzione della rete, con l'attributo nome
@@ -178,26 +179,26 @@ class ReteFA:
             # 2. Costruzione dei links (con controllo dell'errore sull'esistenza dei comportamenti)
             for link in root.findall('links/link'):
                 # Recupero degli attributi del link
-                nome = link.attrib()['nome']
-                comp0 = link.attrib()['comp0']
-                comp1 = link.attrib()['comp1']
+                nome = link.attrib['nome']
+                comp0 = link.attrib['comp0']
+                comp1 = link.attrib['comp1']
                 # Aggiungiamo il link descritto dagli attributi
                 out.addLink(nome, comp0, comp1)
 
             # 3-4-5-6-7. Introduzione degli stati, dello stato iniziale e delle
             # transizioni (con etichette) nei comportamenti
             for comp in root.findall('comportamenti/comportamento'):
-                nomeComp = comp.attrib()['nome']
+                nomeComp = comp.attrib['nome']
                 # Cerco il comportamento nomeComp nella rete
-                comportamento = self.findComportamentoByNome(nomeComp)
+                comportamento = out.findComportamentoByNome(nomeComp)
                 if comportamento is not None:
                     # 3. Aggiunta di tutti gli stati del comportamento corrente
                     for stato in comp.findall('stati/stato'):
-                        newStato = Stato(stato.attrib()['nome'])
+                        newStato = Stato(stato.attrib['nome'])
                         comportamento.addStato(newStato)
 
                     # 4. Aggiunta dello stato iniziale al comportamento dato (con controllo degli errori)
-                    nomeStatoIniziale = comp.attrib()['statoIniziale']
+                    nomeStatoIniziale = comp.attrib['statoIniziale']
                     statoIniziale = comportamento.findStatoByNome(nomeStatoIniziale)
                     if statoIniziale is not None:
                         comportamento.statoIniziale = statoIniziale
@@ -206,11 +207,11 @@ class ReteFA:
 
                     # 5. Aggiunta delle transizioni al comportamento dato (con controllo degli errori)
                     for trans in comp.findall('transizioni/transizione'):
-                        nomeTrans = trans.attrib()['nome']
-                        nomeStato0 = trans.attrib()['stato0']
-                        nomeStato1 = trans.attrib()['stato1']
-                        etichettaOsservabilita = trans.attrib()['osservabilita']
-                        etichettaRilevanza = trans.attrib()['rilevanza']
+                        nomeTrans = trans.attrib['nome']
+                        nomeStato0 = trans.attrib['stato0']
+                        nomeStato1 = trans.attrib['stato1']
+                        etichettaOsservabilita = trans.attrib['osservabilita']
+                        etichettaRilevanza = trans.attrib['rilevanza']
 
                         # Verifichiamo che gli stati siano presenti nel comportamento
                         stato0 = comportamento.findStatoByNome(nomeStato0)
@@ -222,11 +223,11 @@ class ReteFA:
                                 en = trans.find('eventoNecessario')
                                 eventoNecessario = None
                                 if en is not None:
-                                    nomeEventoNecessario = en.attrib()['nome']
-                                    nomeLinkEventoNecessario = en.attrib()['link']
+                                    nomeEventoNecessario = en.attrib['nome']
+                                    nomeLinkEventoNecessario = en.attrib['link']
 
                                     # Cerchiamo il link nel comportamento
-                                    linkEventoNecessario = self.findLinkByNome(nomeLinkEventoNecessario)
+                                    linkEventoNecessario = out.findLinkByNome(nomeLinkEventoNecessario)
                                     if linkEventoNecessario is not None:
                                         # Costruiamo l'evento necessario alla transizione
                                         eventoNecessario = Buffer(linkEventoNecessario, nomeEventoNecessario)
@@ -237,11 +238,11 @@ class ReteFA:
                                 # 7. Aggiunta degli eventi in output alla transizione
                                 eventiOutput = []
                                 for eo in trans.findall('eventiOutput/evento'):
-                                    nomeEventoOutput = eo.attrib()['nome']
-                                    nomeLinkEventoOutput = eo.attrib()['link']
+                                    nomeEventoOutput = eo.attrib['nome']
+                                    nomeLinkEventoOutput = eo.attrib['link']
 
                                     # Cerchiamo il link nel comportamento
-                                    linkEventoOutput = self.findLinkByNome(nomeLinkEventoOutput)
+                                    linkEventoOutput = out.findLinkByNome(nomeLinkEventoOutput)
                                     if linkEventoOutput is not None:
                                         # Costruiamo l'evento output e aggiungiamolo alla lista
                                         eventoOutput = Buffer(linkEventoOutput, nomeEventoOutput)
@@ -356,6 +357,5 @@ if __name__ == '__main__':
     # import xml.etree.ElementTree as ET
     # tree = ET.parse(xmlPath)
     # root = tree.getroot()
-
     rete = ReteFA.fromXML(xmlPath)
     print(rete)
