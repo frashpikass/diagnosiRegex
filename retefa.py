@@ -184,13 +184,11 @@ class ReteFA:
                 # Aggiungiamo il link descritto dagli attributi
                 out.addLink(nome, comp0, comp1)
 
-                # todo verifica se serve newComp.addStato()
-
             # 3-4-5-6-7. Introduzione degli stati, dello stato iniziale e delle
             # transizioni (con etichette) nei comportamenti
             for comp in root.findall('comportamenti/comportamento'):
                 nomeComp = comp.attrib()['nome']
-                # Cerco il comportamento comp nella rete
+                # Cerco il comportamento nomeComp nella rete
                 comportamento = self.findComportamentoByNome(nomeComp)
                 if comportamento is not None:
                     # 3. Aggiunta di tutti gli stati del comportamento corrente
