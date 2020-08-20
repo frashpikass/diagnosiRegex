@@ -144,14 +144,17 @@ class ReteFA:
 
 
         """
-        Costruzione della struttura dati in ordine tale da verificare che i riferimenti incrociati fra elementi della struttura esistano
+        Costruzione della struttura dati in ordine tale da verificare che i riferimenti incrociati fra elementi della 
+        struttura esistano.
         Costruiamo gli oggetti nel seguente ordine. Segno con * dove fare il controllo degli errori:
             1- comportamenti, comportamento(nome)
             2- links(nome, comp0*, comp1*) *controlla che esistano i comportamenti
             3- comportamenti, comportamento, stati, stato(nome)
             4- statoIniziale* del comportamento *controlla che esista lo stato indicato
-            5- transizioni, transizione(nome, stato0*, stato1*, osservabilita, rilevanza) *controlla che gli stati esistano
-            6- eventualmente evento necessario della transizione eventoNecessario(nome, link*) *controlla che il link esista
+            5- transizioni, transizione(nome, stato0*, stato1*, osservabilita, rilevanza) 
+                *controlla che gli stati esistano
+            6- eventualmente evento necessario della transizione eventoNecessario(nome, link*)
+                *controlla che il link esista
             7- eventualmente eventiOutput(evento, link*) *controlla che il link esista
             
             8- compilazione delle transizioni uscenti
@@ -178,10 +181,10 @@ class ReteFA:
                 nome = link.attrib()['nome']
                 comp0 = link.attrib()['comp0']
                 comp1 = link.attrib()['comp1']
-                # Agiungiamo il link descritto dagli attributi
+                # Aggiungiamo il link descritto dagli attributi
                 out.addLink(nome, comp0, comp1)
 
-                newComp.addStato()
+                # todo verifica se serve newComp.addStato()
 
             # 3-4-5-6-7. Introduzione degli stati, dello stato iniziale e delle
             # transizioni (con etichette) nei comportamenti
@@ -314,9 +317,9 @@ class ReteFA:
             if comp1 is not None:
                 self.links.append(Link(nome, comp0, comp1))
             else:
-                raise KeyError(f'Il comportamento {nomeComp0} del link {nome} non è stato definito nella rete')
+                raise KeyError(f'Il comportamento {nomeComp1} del link {nome} non è stato definito nella rete')
         else:
-            raise KeyError(f'Il comportamento {nomeComp1} del link {nome} non è stato definito nella rete')
+            raise KeyError(f'Il comportamento {nomeComp0} del link {nome} non è stato definito nella rete')
 
     def findLinkByNome(self, nome: str) -> Link:
         """
