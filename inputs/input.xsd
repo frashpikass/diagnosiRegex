@@ -1,0 +1,88 @@
+<?xml version="1.1" encoding='UTF-8'?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+	<xs:element name="retefa">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="comportamenti">
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="comportamento" maxOccurs="unbounded">
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="stati">
+											<xs:complexType>
+												<xs:sequence>
+													<xs:element name="stato" maxOccurs="unbounded">
+														<xs:complexType>
+															<xs:attribute name="nome" type="xs:string" use="required" />
+														</xs:complexType>
+													</xs:element>
+												</xs:sequence>
+											</xs:complexType>
+										</xs:element>
+
+										<xs:element name="transizioni">
+											<xs:complexType>
+												<xs:sequence>
+													<xs:element name="transizione" maxOccurs="unbounded">	
+														<xs:complexType>
+															<xs:sequence>
+																<xs:element name="eventoNecessario" minOccurs="0" maxOccurs="1">
+																	<xs:complexType>
+																		<xs:attribute name="nome" type="xs:string" default="" />
+																		<xs:attribute name="link" type="xs:string" default="" />
+																	</xs:complexType>
+																</xs:element>
+
+																<xs:element name="eventiOutput" minOccurs="0" maxOccurs="1">
+																	<xs:complexType>
+																		<xs:sequence>
+																			<xs:element name="evento" minOccurs="0" maxOccurs="unbounded">
+																				<xs:complexType>
+																					<xs:attribute name="nome" type="xs:string" use="required" />
+																					<xs:attribute name="link" type="xs:string" use="required" />
+																				</xs:complexType>
+																			</xs:element>
+																		</xs:sequence>
+																	</xs:complexType>
+																</xs:element>
+															</xs:sequence>
+
+															<xs:attribute name="nome" type="xs:string" use="required" />
+															<xs:attribute name="stato0" type="xs:string" use="required" />
+															<xs:attribute name="stato1" type="xs:string" use="required" />
+															<xs:attribute name="osservabilita" type="xs:string" default="" />
+															<xs:attribute name="rilevanza" type="xs:string" default="" />
+														</xs:complexType>
+													</xs:element>
+												</xs:sequence>
+											</xs:complexType>
+										</xs:element>
+									</xs:sequence>
+									<xs:attribute name="nome" type="xs:string" use="required" />
+									<xs:attribute name="statoIniziale" type="xs:string" use="required" />
+								</xs:complexType>
+							</xs:element>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+
+				<xs:element name="links">
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="link" maxOccurs="unbounded">
+								<xs:complexType>
+									<xs:attribute name="nome" type="xs:string" use="required" />
+									<xs:attribute name="comp0" type="xs:string" use="required" />
+									<xs:attribute name="comp1" type="xs:string" use="required" />
+								</xs:complexType>
+							</xs:element>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+			</xs:sequence>
+			<xs:attribute name="nome" type="xs:string" use="required" />
+		</xs:complexType>
+	</xs:element>
+	
+</xs:schema> 

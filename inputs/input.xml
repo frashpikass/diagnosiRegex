@@ -1,0 +1,55 @@
+<?xml version='1.1' encoding='UTF-8'?>
+<retefa nome="esempio1">
+
+	<comportamenti>
+		<comportamento nome="C2" statoIniziale="20">
+			<stati>
+				<stato nome="20" />
+				<stato nome="21" />
+			</stati>
+
+			<transizioni>
+				<transizione nome="t2a" stato0="20" stato1="21" osservabilita="o2" rilevanza="">
+					<eventoNecessario nome="e2" link="L2" />
+					<eventiOutput>
+						<evento nome="e3" link="L3" />
+					</eventiOutput>
+				</transizione>
+
+				<transizione nome="t2b" stato0="21" stato1="20" osservabilita="" rilevanza="r">
+					<eventiOutput>
+						<evento nome="e3" link="L3" />
+					</eventiOutput>
+				</transizione>
+			</transizioni>
+		</comportamento>
+
+		<comportamento nome="C3" statoIniziale="30">
+			<stati>
+				<stato nome="30" />
+				<stato nome="31" />
+			</stati>
+
+			<transizioni>
+				<transizione nome="t3a" stato0="30" stato1="31" osservabilita="o3" rilevanza="">
+					<eventiOutput>
+						<evento nome="e2" link="L2" />
+					</eventiOutput>
+				</transizione>
+
+				<transizione nome="t3b" stato0="31" stato1="30" osservabilita="" rilevanza="">
+					<eventoNecessario nome="e3" link="L3" />
+				</transizione>
+
+				<transizione nome="t3c" stato0="31" stato1="31" osservabilita="" rilevanza="f">
+					<eventoNecessario nome="e3" link="L3" />
+				</transizione>
+			</transizioni>
+		</comportamento>
+	</comportamenti>
+
+	<links>
+		<link nome="L2" comp0="C3" comp1="C2" />
+		<link nome="L3" comp0="C2" comp1="C3" />
+	</links>
+</retefa>
