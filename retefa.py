@@ -130,7 +130,7 @@ class ReteFA:
         :return: true se l'XML è valido
         """
         # todo: porta fuori la costante/path
-        xsdPath = 'D:\\STORAGE\\Dropbox\\Dropbox\\000 Specialistica\\ASD\\Progetto ASD 2020\\input.xsd'
+        xsdPath = 'inputs/input.xsd'
         schema = xmlschema.XMLSchema(xsdPath)
         return schema.is_valid(xml)
 
@@ -344,15 +344,15 @@ class ReteFA:
 ## MAIN ##
 
 if __name__ == '__test1__':
-    xsdPath = 'D:\\STORAGE\\Dropbox\\Dropbox\\000 Specialistica\\ASD\\Progetto ASD 2020\\input.xsd'
-    xmlPath = 'D:\\STORAGE\\Dropbox\\Dropbox\\000 Specialistica\\ASD\\Progetto ASD 2020\\input.xml'
+    xsdPath = 'inputs/input.xsd'
+    xmlPath = 'inputs/input.xml'
 
     out = ReteFA.validateXML(xmlPath)
     print(out)
 
 if __name__ == '__main__':
     """Test per l'inizializzazione di una rete a partire da un input"""
-    xmlPath = 'D:\\STORAGE\\Dropbox\\Dropbox\\000 Specialistica\\ASD\\Progetto ASD 2020\\input.xml'
+    xmlPath = 'inputs/input.xml'
 
     # import xml.etree.ElementTree as ET
     # tree = ET.parse(xmlPath)
