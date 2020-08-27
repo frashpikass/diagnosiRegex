@@ -47,9 +47,9 @@ class Stato(object):
     Classe che descrive uno stato di un comportamento e le sue transizioni uscenti.
     """
 
-    def __init__(self, nome: str, transizioniUscenti: List[Transizione] = []):
+    def __init__(self, nome: str):
         self.nome = nome
-        self.transizioniUscenti = transizioniUscenti
+        self.transizioniUscenti = []
 
     def addTransizioneUscente(self, transizione: Transizione):
         """
@@ -64,10 +64,10 @@ class Comportamento(object):
     Classe che descrive un comportamento della rete FA, i suoi stati, le sue transizioni e lo stato iniziale.
     """
 
-    def __init__(self, nome, stati: List[Stato] = [], transizioni: List[Transizione] = [], statoIniziale: Stato = None):
+    def __init__(self, nome: str, statoIniziale: Stato = None):
         self.nome = nome
-        self.stati = stati
-        self.transizioni = transizioni
+        self.stati = []
+        self.transizioni = []
         self.statoIniziale = statoIniziale
 
     def addStato(self, newStato: Stato):
@@ -89,13 +89,21 @@ class Comportamento(object):
                 return stato
         return None
 
+    def addTransizione(self, newTransizione: Transizione):
+        """
+        Aggiunge la transizione data alle transizioni di questo Comportamento
+        :param newTransizione: la nuova Transizione da aggiungere
+        :return: None
+        """
+        self.transizioni.append(newTransizione)
+
 
 class Link(object):
     """
     Classe che descrive un link fra due comportamenti nella topologia della rete FA.
     """
 
-    def __init__(self, nome, comportamento0: Comportamento, comportamento1: Comportamento):
+    def __init__(self, nome: str, comportamento0: Comportamento, comportamento1: Comportamento):
         """
         Costruttore della classe Link
         :param nome: Nome del link
@@ -113,15 +121,10 @@ class ReteFA:
     Classe principale di questo file, descrive complessivamente una rete FA, i suoi comportamenti e i suoi link.
     """
 
-    def __init__(self, nome: str, comportamenti: List[Comportamento] = [], links: List[Link] = []):
-        """
-        :type nome: String
-        :type comportamenti: Comportamento[]
-        :type links: Link[]
-        """
+    def __init__(self, nome: str):
         self.id = nome
-        self.comportamenti = comportamenti
-        self.links = links
+        self.comportamenti = []
+        self.links = []
 
     @staticmethod
     def validateXML(xml) -> bool:
@@ -260,6 +263,8 @@ class ReteFA:
                                     eventiOutput,
                                     osservabilita=etichettaOsservabilita,
                                     rilevanza=etichettaRilevanza)
+                                comportamento.addTransizione(newTransizione)
+
 
                             else:
                                 raise KeyError(
