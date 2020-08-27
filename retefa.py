@@ -132,7 +132,6 @@ class ReteFA:
         Metodo per validare l'XML in input
         :return: true se l'XML è valido
         """
-        # todo: porta fuori la costante/path
         xsdPath = 'inputs/input.xsd'
         schema = xmlschema.XMLSchema(xsdPath)
         return schema.is_valid(xml)
@@ -349,7 +348,6 @@ class ReteFA:
 ## MAIN ##
 
 if __name__ == '__test1__':
-    xsdPath = 'inputs/input.xsd'
     xmlPath = 'inputs/input.xml'
 
     out = ReteFA.validateXML(xmlPath)
