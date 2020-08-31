@@ -349,10 +349,35 @@ class Nodo:
         self.isPotato = True
         self.isFinale = False
 
+    def addStato(self, stato: Stato) -> None:
+        """
+        Aggiunge uno Stato della ReteFA al nodo corrente
+        :param stato: lo Stato da aggiungere
+        """
+        self.stati.append(stato)
+
+    def addContenutoLink(self, buffer: Buffer) -> None:
+        """
+        Aggiunge un oggetto Buffer della ReteFA al contenuto del link del nodo corrente
+        :param buffer: il buffer da aggiungere al contenuto del link
+        """
+        self.contenutoLink.append(buffer)
+
+    def verificaFattibilitaTransizione(self, transizione: Transizione):
+        """
+        Ritorna il nodo successivo dello SC a partire dal nodo corrente se la transizione data può scattare,
+        None altrimenti.
+        Il nodo restituito è già flaggato come finale se tutti i suoi link sono scarichi (cioè contengono evento nullo)
+        :param transizione: la transizione da verificare sul nodo corrente
+        :return: il nodo successivo dello Spazio Comportamentale se la transizione è fattibile. None altrimenti
+        """
+
+        # todo: completare il metodo
+        return Nodo()
+
 
 class Arco:
-    def __init__(self, nome: str, nodo0: Nodo, nodo1: Nodo, transizione: Transizione):
-        self.nome = nome
+    def __init__(self, nodo0: Nodo, nodo1: Nodo, transizione: Transizione):
         self.nodo0 = nodo0
         self.nodo1 = nodo1
         self.transizione = transizione
@@ -360,9 +385,71 @@ class Arco:
 
 
 class SpazioComportamentale:
-    def __init__(self):
+    def __init__(self, rete: ReteFA):
+        """
+        Inizializza lo Spazio Comportamentale a partire da una ReteFA
+        :param rete: la ReteFA in input
+        """
+        # Inizializza gli attributi
         self.nodi = []
         self.archi = []
+        self.nodoIniziale = Nodo()
+
+        # Generazione del nodo iniziale dell'SC
+        # Insieriamo tutti gli stati iniziali di tutti i comportamenti
+        comp: Comportamento
+        for comp in rete.comportamenti:
+            self.nodoIniziale.addStato(comp.statoIniziale)
+
+        # Inserisce un buffer vuoto per ciascun link presente nella rete
+        link: Link
+        for link in rete.links:
+            self.nodoIniziale.addContenutoLink(Buffer(link, ""))
+
+        # Avendo tutti i buffer vuoti, il nodo iniziale è sempre anche finale
+        self.nodoIniziale.isFinale = True
+
+        # Ora il nodo iniziale è inizializzato
+        # Aggiungiamo il nodo iniziale allo SC
+        self.nodi.append(self.nodoIniziale)
+
+        # Ora dobbiamo esplorare la Rete FA per costruire lo SC
+
+        # Inizializzo una pila di nodi da esplorare
+        nodiDaEsplorare = []
+
+        # Inizializza il nodo di SC correntemente osservato
+        nodoCorr = self.nodoIniziale
+
+        # Esploriamo e creiamo lo spazio comportamentale
+        # a partire dal nodo iniziale
+        while nodoCorr is not None:
+            # Scorri la lista degli stati correnti
+            # del nodo corrente
+            for stato in nodoCorr.stati:
+                for trans in stato.transizioniUscenti:
+                    # Ricaviamo il nodo successivo a partire dal nodo corrente
+                    # verificando la fattibilità della transizione uscente
+                    nodoSucc = self.verificaFattibilitaTransizione(trans, nodoCorr)
+
+                    # Se esiste una transizione fattibile (ovvero il nodo successivo non è None)
+                    if nodoSucc is not None:
+                        rif = self.RicercaNodo(nodoSucc)
+
+                        # Se il nodo non è già nell'SC
+                        if rif is None:
+                            # Aggiungo il nodo all'SC
+                            self.addNodo(nodoSucc)
+                            # Push del nodo sullo stack di nodi da esplorare
+                            nodiDaEsplorare.append(nodoSucc) # append è come push sulle liste
+                            # ATTENZIONE: usare la lista di Python come stack può
+                            # essere inefficiente https://www.geeksforgeeks.org/stack-in-python/
+
+                        # Aggiungo sempre l'arco legato alla transizione fattibile
+                        self.addArco(Arco(nodoCorr, nodoSucc, trans))
+
+            # Recuperiamo il nuovo nodo corrente da studiare
+            nodoCorr = nodiDaEsplorare.pop()
 
     def addArco(self, arco: Arco) -> None:
         """
@@ -378,7 +465,9 @@ class SpazioComportamentale:
         """
         self.nodi.append(nodo)
 
-
+    def RicercaNodo(self, nodoSucc):
+        # todo: aggiungi comportamento
+        pass
 
 
 ## METODI ##
