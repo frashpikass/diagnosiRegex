@@ -341,6 +341,45 @@ class ReteFA:
         return None
 
 
+class Nodo:
+    def __init__(self):
+        self.nome = None
+        self.stati = []
+        self.contenutoLink = []
+        self.isPotato = True
+        self.isFinale = False
+
+
+class Arco:
+    def __init__(self, nome: str, nodo0: Nodo, nodo1: Nodo, transizione: Transizione):
+        self.nome = nome
+        self.nodo0 = nodo0
+        self.nodo1 = nodo1
+        self.transizione = transizione
+        self.isPotato = True
+
+
+class SpazioComportamentale:
+    def __init__(self):
+        self.nodi = []
+        self.archi = []
+
+    def addArco(self, arco: Arco) -> None:
+        """
+        Aggiunge un arco alla lista degli archi di questo Spazio Comportamentale
+        :param arco: l'arco da aggiungere
+        """
+        self.archi.append(arco)
+
+    def addNodo(self, nodo: Nodo) -> None:
+        """
+        Aggiunge un nodo alla lista degli nodi di questo Spazio Comportamentale
+        :param nodo: il nodo da aggiungere
+        """
+        self.nodi.append(nodo)
+
+
+
 
 ## METODI ##
 
