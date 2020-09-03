@@ -17,6 +17,17 @@ class Buffer(object):
         self.link = link
         self.evento = evento
 
+    def clone(self):
+        """
+        Crea e ritorna una deep copy del buffer corrente
+        :return: una deep copy del buffer corrente
+        """
+        return Buffer(self.link, str(self.evento))
+
+    def __eq__(self, other):
+        return self.link == other.link and self.evento == other.evento
+
+
 
 class Transizione(object):
     """
@@ -253,7 +264,8 @@ class ReteFA:
                                         raise KeyError(
                                             f'Il link {nomeLinkEventoOutput} relativo all\'evento output {nomeEventoOutput} della transizione {nomeTrans} del comportamento {nomeComp} non è stato definito nella rete')
 
-                                # Se entrambi gli stati della transizione sono presenti, aggiungiamo la nuova transizione
+                                # Se entrambi gli stati della transizione sono presenti,
+                                # aggiungiamo la nuova transizione
                                 newTransizione = Transizione(
                                     nomeTrans,
                                     stato0,
@@ -363,6 +375,40 @@ class Nodo:
         """
         self.contenutoLink.append(buffer)
 
+    def clone(self):
+        """
+        Crea e ritorna una deep copy del nodo corrente
+        :return: una deep copy del nodo corrente
+        """
+        out = Nodo()
+
+        out.nome = str(self.nome)
+
+        stato: Stato
+        for stato in self.stati:
+            out.addStato(stato)
+
+        buffer: Buffer
+        for buffer in self.contenutoLink:
+            out.addContenutoLink(buffer.clone())
+
+        out.isPotato = self.isPotato
+        out.isFinale = self.isFinale
+
+        return out
+
+    def __eq__(self, other):
+        # Verifico se ogni stato in questo nodo è anche nell'altro nodo
+        # todo: verificare se funziona
+        # todo: forse ci converrebbe definire gli stati come fossero un set? Quanto ci costa il cast a set?
+        # todo: verifica se per fare il confronto fra contenutoLink, l'operatore == chiama __eq__ per ogni confronto fra elementi
+        other: Nodo
+        return self.isFinale == other.isFinale \
+            and set(self.stati) == set(other.stati) \
+            and set(self.contenutoLink) == set(other.contenutoLink)
+
+
+
     def verificaFattibilitaTransizione(self, transizione: Transizione):
         """
         Ritorna il nodo successivo dello SC a partire dal nodo corrente se la transizione data può scattare,
@@ -372,8 +418,81 @@ class Nodo:
         :return: il nodo successivo dello Spazio Comportamentale se la transizione è fattibile. None altrimenti
         """
 
-        # todo: completare il metodo
-        return Nodo()
+        # Partiamo dalla transizione in input e cerchiamo di capire se può scattare.
+        # Leggiamo l'evento necessario allo scatto della transizione (che è un buffer, a livello di struttura dati)
+        # Nel nodo in uscita cerchiamo il contenuto del buffer relativo al link specifico (estraiamo il contenuto dei
+        # buffer del link del nodo).
+        # Cerca nel contenuto dei link del nodo l'evento necessario alla transizione.
+        # Se entrambe le verifiche sugli eventi necessari e in out sono positive, calcoliamo il nodo successivo ponendo:
+        # - come stato relativo al comportamento coinvolto nella transizione, lo stato1 della transizione
+        # - gli stati relativi agli altri comportamenti sul nodo, inalterati
+        # - il contenuto dei buffer dei link coinvolti nella transizione, aggiornato con gli eventi uscenti
+        # - il flag isFinale a true se il nodo è finale
+
+        # 1. Verifica evento necessario
+        # Se l'evento necessario è nel buffer del link corretto procediamo
+        bufferEventoNec: Buffer
+        bufferEventoNec = self.cercaContenutoLink(transizione.eventoNecessario.link)
+        if bufferEventoNec is not None and bufferEventoNec.evento == transizione.eventoNecessario.evento:
+            # Inizializziamo il nodo in output a questa funzione
+            # creando un clone del nodo in input, che poi modificheremo in corso d'opera
+            # in modo da rispecchiare gli effetti della transizione
+            nodoOutput: Nodo
+            nodoOutput = self.clone()  # Nota: l'operazione di clonazione avviene qui per risparmiare cicli
+
+            # Sostituiamo nel buffer del nodo in uscita, relativamente al contenuto del link dell'evento necessario
+            # alla transizione, un evento nullo (quindi è come se consumassimo l'evento necessario)
+            nodoOutput.cercaContenutoLink(transizione.eventoNecessario.link).evento = ""
+
+            # 2. Verifica che i link che saranno riempiti dalla transizione siano scarichi
+            # Recuperiamo gli eventi in uscita alla transizione, poi ne verifichiamo la fattibilità
+            # ovvero verifichiamo che i buffer dei link coinvolti negli eventi in uscita siano liberi
+            eo: Buffer
+            for eo in transizione.eventiOutput:
+                # L'evento vuoto ha il link dell'evento in uscita alla transizione e il buffer evento del link vuoto
+                # Cerchiamo il buffer relativo al link da riempire secondo la transizione
+                bufferOutput = nodoOutput.cercaContenutoLink(eo.link)
+
+                # Se il buffer è già pieno
+                if bufferOutput.evento != "":
+                    # allora la transizione non è fattibile e ritorniamo None come nodo output
+                    return None
+                else:
+                    # altrimenti dobbiamo inserire l'evento in uscita nei buffer
+                    # del link del nodo in uscita (quindi lo aggiorniamo)
+                    bufferOutput.evento = eo.evento
+
+            # Infine aggiorniamo nel nodoOutput lo stato relativo alla transizione corrente
+            # con lo stato successivo della transizione
+            nodoOutput.stati[nodoOutput.stati.index(transizione.stato0)] = transizione.stato1
+
+            # Verifichiamo che tutti i suoi link siano scarichi per decidere se
+            # flaggare il nodoOutput come finale o meno
+            nodoOutput.isFinale = True
+            buf: Buffer
+            for buf in nodoOutput.contenutoLink:
+                if buf.evento != "":
+                    nodoOutput.isFinale = False
+                    break
+
+            # Dopo averlo costruito e popolato, ritorniamo il nodo output generato dalla transizione
+            return nodoOutput
+
+        else:
+            # Se la transizione non è fattibile, ritorniamo None come nodo output
+            return None
+
+    def cercaContenutoLink(self, link: Link) -> Buffer:
+        """
+        Legge in questo nodo il buffer relativo al link dato e lo ritorna.
+        :param link: il link da leggere
+        :return: il buffer del link passato in input
+        """
+        buffer: Buffer
+        for buffer in self.contenutoLink:
+            if buffer.link == link:
+                return buffer
+        return None
 
 
 class Arco:
@@ -421,7 +540,7 @@ class SpazioComportamentale:
         # Inizializza il nodo di SC correntemente osservato
         nodoCorr = self.nodoIniziale
 
-        # Esploriamo e creiamo lo spazio comportamentale
+        # Esploriamo la rete FA e creiamo lo spazio comportamentale
         # a partire dal nodo iniziale
         while nodoCorr is not None:
             # Scorri la lista degli stati correnti
@@ -430,11 +549,11 @@ class SpazioComportamentale:
                 for trans in stato.transizioniUscenti:
                     # Ricaviamo il nodo successivo a partire dal nodo corrente
                     # verificando la fattibilità della transizione uscente
-                    nodoSucc = self.verificaFattibilitaTransizione(trans, nodoCorr)
+                    nodoSucc = nodoCorr.verificaFattibilitaTransizione(trans)
 
                     # Se esiste una transizione fattibile (ovvero il nodo successivo non è None)
                     if nodoSucc is not None:
-                        rif = self.RicercaNodo(nodoSucc)
+                        rif = self.ricercaNodo(nodoSucc)
 
                         # Se il nodo non è già nell'SC
                         if rif is None:
@@ -450,6 +569,7 @@ class SpazioComportamentale:
 
             # Recuperiamo il nuovo nodo corrente da studiare
             nodoCorr = nodiDaEsplorare.pop()
+            # Proseguiamo col while
 
     def addArco(self, arco: Arco) -> None:
         """
@@ -465,9 +585,49 @@ class SpazioComportamentale:
         """
         self.nodi.append(nodo)
 
-    def RicercaNodo(self, nodoSucc):
-        # todo: aggiungi comportamento
-        pass
+    def ricercaNodo(self, nodo: Nodo) -> Nodo:
+        """
+        Ricerca per valore il nodo dato fra i nodi dello SpazioComportamentale
+        :param nodo:
+        :return:
+        """
+        # Scorriamo i nodi dello spazio comportamentale
+        # alla ricerca di un nodo che sia come quello in input
+        for nodoCorr in self.nodi:
+            # # Verifichiamo tutte le features del nodo
+            # # da trovare confrontandole con quelle del nodo
+            # # correntemente analizzato dal ciclo partendo da
+            # # quelle meno dispendiose per risparmiare cicli
+            #
+            # # Se il nodo corrente non è come il nodo in input
+            # # rispetto a isFinale, passa all'iter successiva
+            # if nodo.isFinale != nodoCorr.isFinale:
+            #     continue
+            #
+            # # (ipotizziamo ora che vi siano sempre meno stati che li
+            # # quindi valutiamo prima la corrispondenza sugli stati)
+            # # Se il nodo corrente non è come il nodo in input
+            # # rispetto agli stati (confronto per valore con cortocircuito),
+            # # passa all'iterazione successiva del for each
+            # # todo: forse è meglio gestire gli stati come set?
+            # if set(nodo.stati) != set(nodoCorr.stati):
+            #     continue
+            #
+            # # Se il nodo corrente non è come il nodo in input
+            # # rispetto al contenuto dei buffer
+            # # (confronto per valore con cortocircuito),
+            # # passa all'iterazione successiva
+            # # todo: controlla che faccia bene il confronto fra i buffer!
+            # if set(nodo.contenutoLink) != set(nodoCorr.contenutoLink):
+            #     continue
+
+            # Se abbiamo trovato il nodo corrispondente a quello in input
+            # lo ritorniamo
+            if nodo == nodoCorr:
+                return nodoCorr
+
+        # Se il nodo non è stato trovato
+        return None
 
 
 ## METODI ##
