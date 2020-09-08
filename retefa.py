@@ -405,7 +405,7 @@ class Nodo:
         other: Nodo
         return self.isFinale == other.isFinale \
             and set(self.stati) == set(other.stati) \
-            and set(self.contenutoLink) == set(other.contenutoLink)
+            and set(self.contenutoLink) == set(other.contenutoLink) # todo: fix unhashable type: Buffer
 
 
 
@@ -429,58 +429,62 @@ class Nodo:
         # - il contenuto dei buffer dei link coinvolti nella transizione, aggiornato con gli eventi uscenti
         # - il flag isFinale a true se il nodo è finale
 
-        # 1. Verifica evento necessario
-        # Se l'evento necessario è nel buffer del link corretto procediamo
-        bufferEventoNec: Buffer
-        bufferEventoNec = self.cercaContenutoLink(transizione.eventoNecessario.link)
-        if bufferEventoNec is not None and bufferEventoNec.evento == transizione.eventoNecessario.evento:
-            # Inizializziamo il nodo in output a questa funzione
-            # creando un clone del nodo in input, che poi modificheremo in corso d'opera
-            # in modo da rispecchiare gli effetti della transizione
-            nodoOutput: Nodo
-            nodoOutput = self.clone()  # Nota: l'operazione di clonazione avviene qui per risparmiare cicli
+        # Inizializziamo il nodo in output a questa funzione
+        # creando un clone del nodo in input, che poi modificheremo in corso d'opera
+        # in modo da rispecchiare gli effetti della transizione
+        nodoOutput: Nodo
+        nodoOutput = self.clone()
 
-            # Sostituiamo nel buffer del nodo in uscita, relativamente al contenuto del link dell'evento necessario
-            # alla transizione, un evento nullo (quindi è come se consumassimo l'evento necessario)
-            nodoOutput.cercaContenutoLink(transizione.eventoNecessario.link).evento = ""
+        # 1. Verifica se è presente l'evento necessario
+        if transizione.eventoNecessario is not None:
+            bufferEventoNec: Buffer
+            bufferEventoNec = nodoOutput.cercaContenutoLink(transizione.eventoNecessario.link)
+            # Se l'evento necessario è nel buffer del link corretto, lo consumiamo e procediamo
+            if bufferEventoNec.evento == transizione.eventoNecessario.evento:
+                # consumiamo l'evento necessario
+                bufferEventoNec.evento = ""
+                # procediamo
+            else:
+                # La transizione non è fattibile perché manca l'evento necessario
+                # ritorniamo None come nodo output
+                return None
 
-            # 2. Verifica che i link che saranno riempiti dalla transizione siano scarichi
-            # Recuperiamo gli eventi in uscita alla transizione, poi ne verifichiamo la fattibilità
-            # ovvero verifichiamo che i buffer dei link coinvolti negli eventi in uscita siano liberi
-            eo: Buffer
-            for eo in transizione.eventiOutput:
-                # L'evento vuoto ha il link dell'evento in uscita alla transizione e il buffer evento del link vuoto
-                # Cerchiamo il buffer relativo al link da riempire secondo la transizione
-                bufferOutput = nodoOutput.cercaContenutoLink(eo.link)
+        # 2. Verifichiamo se c'è spazio nel buffer del nodo per gli eventi in output
 
-                # Se il buffer è già pieno
-                if bufferOutput.evento != "":
-                    # allora la transizione non è fattibile e ritorniamo None come nodo output
-                    return None
-                else:
-                    # altrimenti dobbiamo inserire l'evento in uscita nei buffer
-                    # del link del nodo in uscita (quindi lo aggiorniamo)
-                    bufferOutput.evento = eo.evento
+        # Verifica che i link che saranno riempiti dalla transizione siano scarichi
+        # Recuperiamo gli eventi in uscita alla transizione, poi ne verifichiamo la fattibilità
+        # ovvero verifichiamo che i buffer dei link coinvolti negli eventi in uscita siano liberi
+        eo: Buffer
+        for eo in transizione.eventiOutput:
+            # L'evento vuoto ha il link dell'evento in uscita alla transizione e il buffer evento del link vuoto
+            # Cerchiamo il buffer relativo al link da riempire secondo la transizione
+            bufferOutput = nodoOutput.cercaContenutoLink(eo.link)
 
-            # Infine aggiorniamo nel nodoOutput lo stato relativo alla transizione corrente
-            # con lo stato successivo della transizione
-            nodoOutput.stati[nodoOutput.stati.index(transizione.stato0)] = transizione.stato1
+            # Se il buffer è già pieno
+            if bufferOutput.evento != "":
+                # allora la transizione non è fattibile: ritorniamo None come nodo output
+                return None
+            else:
+                # altrimenti dobbiamo inserire l'evento in uscita nei buffer
+                # del link del nodo in uscita (quindi lo aggiorniamo)
+                bufferOutput.evento = eo.evento
 
-            # Verifichiamo che tutti i suoi link siano scarichi per decidere se
-            # flaggare il nodoOutput come finale o meno
-            nodoOutput.isFinale = True
-            buf: Buffer
-            for buf in nodoOutput.contenutoLink:
-                if buf.evento != "":
-                    nodoOutput.isFinale = False
-                    break
+        # Infine aggiorniamo nel nodoOutput lo stato relativo alla transizione corrente
+        # con lo stato successivo della transizione
+        nodoOutput.stati[nodoOutput.stati.index(transizione.stato0)] = transizione.stato1
 
-            # Dopo averlo costruito e popolato, ritorniamo il nodo output generato dalla transizione
-            return nodoOutput
+        # Verifichiamo che tutti i suoi link siano scarichi per decidere se
+        # flaggare il nodoOutput come finale o meno
+        nodoOutput.isFinale = True
+        buf: Buffer
+        for buf in nodoOutput.contenutoLink:
+            if buf.evento != "":
+                nodoOutput.isFinale = False
+                break
 
-        else:
-            # Se la transizione non è fattibile, ritorniamo None come nodo output
-            return None
+        # Dopo averlo costruito e popolato, ritorniamo il nodo output generato dalla transizione
+        return nodoOutput
+
 
     def cercaContenutoLink(self, link: Link) -> Buffer:
         """
@@ -543,8 +547,8 @@ class SpazioComportamentale:
         # Esploriamo la rete FA e creiamo lo spazio comportamentale
         # a partire dal nodo iniziale
         while nodoCorr is not None:
-            # Scorri la lista degli stati correnti
-            # del nodo corrente
+            # Scorri la lista degli stati correnti del nodo corrente
+            # scorri ogni transizione uscente di ciascuno stato corrente
             for stato in nodoCorr.stati:
                 for trans in stato.transizioniUscenti:
                     # Ricaviamo il nodo successivo a partire dal nodo corrente
@@ -555,7 +559,7 @@ class SpazioComportamentale:
                     if nodoSucc is not None:
                         rif = self.ricercaNodo(nodoSucc)
 
-                        # Se il nodo non è già nell'SC
+                        # Se il nodo non è già nell'SC, dunque non è stato trovato
                         if rif is None:
                             # Aggiungo il nodo all'SC
                             self.addNodo(nodoSucc)
@@ -649,4 +653,5 @@ if __name__ == '__main__':
     # tree = ET.parse(xmlPath)
     # root = tree.getroot()
     rete = ReteFA.fromXML(xmlPath)
-    print(rete)
+
+    sc = SpazioComportamentale(rete)
