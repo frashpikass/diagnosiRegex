@@ -24,8 +24,14 @@ class Buffer(object):
         """
         return Buffer(self.link, str(self.evento))
 
+    def __str__(self):
+        return (self.evento if self.evento != "" else "ε") + "(" + self.link.nome + ")"
+
     def __eq__(self, other):
         return self.link == other.link and self.evento == other.evento
+
+    def __hash__(self):
+        return hash((self.link, self.evento))
 
 
 
@@ -51,6 +57,9 @@ class Transizione(object):
         self.eventiOutput = eventiOutput
         self.osservabilita = osservabilita
         self.rilevanza = rilevanza
+
+    def __str__(self):
+        return self.nome + ": " + self.stato0.nome + "->" + self.stato1.nome + ", " + str(self.eventoNecessario) + "/" + str([str(x) for x in self.eventiOutput])
 
 
 class Stato(object):
@@ -399,13 +408,26 @@ class Nodo:
 
     def __eq__(self, other):
         # Verifico se ogni stato in questo nodo è anche nell'altro nodo
-        # todo: verificare se funziona
         # todo: forse ci converrebbe definire gli stati come fossero un set? Quanto ci costa il cast a set?
-        # todo: verifica se per fare il confronto fra contenutoLink, l'operatore == chiama __eq__ per ogni confronto fra elementi
         other: Nodo
         return self.isFinale == other.isFinale \
             and set(self.stati) == set(other.stati) \
-            and set(self.contenutoLink) == set(other.contenutoLink) # todo: fix unhashable type: Buffer
+            and set(self.contenutoLink) == set(other.contenutoLink)
+
+    def __str__(self):
+        out = f"Nome: {self.nome}, Stati:"
+
+        for stato in self.stati:
+            out = out + " " + stato.nome
+        out = out + ", Buffer:"
+
+        for buffer in self.contenutoLink:
+            out = out + " " + str(buffer)
+
+        if self.isFinale:
+            out = out + ", finale"
+
+        return out
 
 
 
@@ -506,6 +528,9 @@ class Arco:
         self.transizione = transizione
         self.isPotato = True
 
+    def __str__(self):
+        return self.transizione.nome + ", " + self.transizione.osservabilita + ", " + self.transizione.rilevanza
+
 
 class SpazioComportamentale:
     def __init__(self, rete: ReteFA):
@@ -571,8 +596,17 @@ class SpazioComportamentale:
                         # Aggiungo sempre l'arco legato alla transizione fattibile
                         self.addArco(Arco(nodoCorr, nodoSucc, trans))
 
-            # Recuperiamo il nuovo nodo corrente da studiare
-            nodoCorr = nodiDaEsplorare.pop()
+            # Recuperiamo il nuovo nodo corrente da studiare, se ci sono nodi correnti
+            # try:
+            #     nodoCorr = nodiDaEsplorare.pop()
+            # except IndexError:
+            #     # Altrimenti, non c'è nessun nodo corrente
+            #     nodoCorr = None
+            if nodiDaEsplorare:
+                nodoCorr = nodiDaEsplorare.pop()
+            else:
+                # Altrimenti, non c'è nessun nodo corrente
+                nodoCorr = None
             # Proseguiamo col while
 
     def addArco(self, arco: Arco) -> None:
@@ -655,3 +689,5 @@ if __name__ == '__main__':
     rete = ReteFA.fromXML(xmlPath)
 
     sc = SpazioComportamentale(rete)
+
+    print("cucù")
