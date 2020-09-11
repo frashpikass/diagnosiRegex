@@ -34,7 +34,6 @@ class Buffer(object):
         return hash((self.link, self.evento))
 
 
-
 class Transizione(object):
     """
     Classe che descrive la transizione fra due stati all'interno di un comportamento.
@@ -59,7 +58,8 @@ class Transizione(object):
         self.rilevanza = rilevanza
 
     def __str__(self):
-        return self.nome + ": " + self.stato0.nome + "->" + self.stato1.nome + ", " + str(self.eventoNecessario) + "/" + str([str(x) for x in self.eventiOutput])
+        return self.nome + ": " + self.stato0.nome + "->" + self.stato1.nome + ", " + str(
+            self.eventoNecessario) + "/" + str([str(x) for x in self.eventiOutput])
 
 
 class Stato(object):
@@ -225,7 +225,8 @@ class ReteFA:
                     if statoIniziale is not None:
                         comportamento.statoIniziale = statoIniziale
                     else:
-                        raise KeyError(f'Lo stato iniziale {nomeStatoIniziale} del comportamento {nomeComp} non è stato definito nella rete')
+                        raise KeyError(
+                            f'Lo stato iniziale {nomeStatoIniziale} del comportamento {nomeComp} non è stato definito nella rete')
 
                     # 5. Aggiunta delle transizioni al comportamento dato (con controllo degli errori)
                     for trans in comp.findall('transizioni/transizione'):
@@ -411,8 +412,8 @@ class Nodo:
         # todo: forse ci converrebbe definire gli stati come fossero un set? Quanto ci costa il cast a set?
         other: Nodo
         return self.isFinale == other.isFinale \
-            and set(self.stati) == set(other.stati) \
-            and set(self.contenutoLink) == set(other.contenutoLink)
+               and set(self.stati) == set(other.stati) \
+               and set(self.contenutoLink) == set(other.contenutoLink)
 
     def __str__(self):
         out = f"Nome: {self.nome}, Stati:"
@@ -428,8 +429,6 @@ class Nodo:
             out = out + ", finale"
 
         return out
-
-
 
     def verificaFattibilitaTransizione(self, transizione: Transizione):
         """
@@ -507,7 +506,6 @@ class Nodo:
         # Dopo averlo costruito e popolato, ritorniamo il nodo output generato dalla transizione
         return nodoOutput
 
-
     def cercaContenutoLink(self, link: Link) -> Buffer:
         """
         Legge in questo nodo il buffer relativo al link dato e lo ritorna.
@@ -582,6 +580,7 @@ class SpazioComportamentale:
 
                     # Se esiste una transizione fattibile (ovvero il nodo successivo non è None)
                     if nodoSucc is not None:
+                        # Cerco nell'SC il riferimento al nodo in uscita alla transizione
                         rif = self.ricercaNodo(nodoSucc)
 
                         # Se il nodo non è già nell'SC, dunque non è stato trovato
@@ -589,12 +588,13 @@ class SpazioComportamentale:
                             # Aggiungo il nodo all'SC
                             self.addNodo(nodoSucc)
                             # Push del nodo sullo stack di nodi da esplorare
-                            nodiDaEsplorare.append(nodoSucc) # append è come push sulle liste
+                            nodiDaEsplorare.append(nodoSucc)  # append è come push sulle liste
                             # ATTENZIONE: usare la lista di Python come stack può
                             # essere inefficiente https://www.geeksforgeeks.org/stack-in-python/
+                            rif = nodoSucc
 
                         # Aggiungo sempre l'arco legato alla transizione fattibile
-                        self.addArco(Arco(nodoCorr, nodoSucc, trans))
+                        self.addArco(Arco(nodoCorr, rif, trans))
 
             # Recuperiamo il nuovo nodo corrente da studiare, se ci sono nodi correnti
             # try:
@@ -667,6 +667,77 @@ class SpazioComportamentale:
         # Se il nodo non è stato trovato
         return None
 
+    def decidiPotatura(self) -> None:
+        """
+        Decide dove potare lo Spazio Comportamentale segnando nodi e archi che non portano a stati finali.
+        """
+        # precondizione: ogni nuovo nodo e arco ha inizialmente isPotato=true
+        for nodo in self.nodi:
+            nodo.isPotato = True
+        for arco in self.archi:
+            arco.isPotato = True
+
+        # Per determinare quali nodi e quali archi vadano potati
+        # parto da ciascun nodo finale dell'SC e risalgo gli archi in ingresso
+
+        # Inizializzo la pila di archi da esplorare
+        archiDaEsplorare = []
+
+        # Ciclo che esplora i nodi finali
+        for nodoFinale in self.nodi:
+            # La condizione su isPotato ci risparmia di visitare nodi già esplorati
+            # Questo meccanismo evita di bloccarsi sui cicli del grafo
+            if nodoFinale.isFinale and nodoFinale.isPotato:
+                # Inizializzo il nodo corrente al nodo finale rintracciato dal ciclo esterno
+                nodoCorrente = nodoFinale
+
+                # Ciclo che esplora i nodi e gli archi entranti a partire da nodoFinale.
+                # Inizializzo nextArco a un valore non nullo
+                nextArco: Arco
+                nextArco = not None
+                while nextArco is not None:
+                    nodoCorrente.isPotato = False
+                    for arco in self.archi:
+                        if arco.nodo1 == nodoCorrente:
+                            arco.isPotato = False
+                            # Faccio il push dell'arco da eplorare solo se non ho ancora visitato il nodo
+                            # Questo meccanismo evita i cicli sul grafo
+                            if arco.nodo0.isPotato:
+                                archiDaEsplorare.append(arco)
+                    # Estrai il prossimo arco da esplorare se c'è
+                    if archiDaEsplorare:
+                        nextArco = archiDaEsplorare.pop()
+
+                        # Estrai il prossimo nodo da esplorare dal prossimo arco (se esiste)
+                        if nextArco is not None:
+                            nodoCorrente = nextArco.nodo0
+                    else:
+                        # Se non c'è inizializziamo l'arco
+                        nextArco = None
+
+    def potaturaRidenominazione(self) -> None:
+        """
+        Decide quali nodi e archi potare, li rimuove dallo Spazio Comportamentale e dunque li ridenomina
+        usando un ID progressivo dato dall'ordine di esplorazione
+        """
+        # Decidi quali archi e quali nodi potare
+        self.decidiPotatura()
+
+        # Effettua potatura e ridenominazione dei nodi
+        # Inizializza il numero univoco dei nodi
+        counter = 0
+
+        # Elimina nodi da potare
+        self.nodi = [n for n in self.nodi if not n.isPotato]
+
+        # Rinomina i nodi non potati
+        for nodo in self.nodi:
+            nodo.nome = str(counter)
+            counter = counter + 1
+
+        # Elimina gli archi da potare
+        self.archi = [a for a in self.archi if not a.isPotato]
+
 
 ## METODI ##
 
@@ -683,11 +754,9 @@ if __name__ == '__main__':
     """Test per l'inizializzazione di una rete a partire da un input"""
     xmlPath = 'inputs/input.xml'
 
-    # import xml.etree.ElementTree as ET
-    # tree = ET.parse(xmlPath)
-    # root = tree.getroot()
     rete = ReteFA.fromXML(xmlPath)
 
     sc = SpazioComportamentale(rete)
+    sc.potaturaRidenominazione()
 
-    print("cucù")
+    print("ciao")
