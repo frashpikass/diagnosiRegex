@@ -531,31 +531,20 @@ class Arco:
 
 
 class SpazioComportamentale:
-    def __init__(self, rete: ReteFA):
-        """
-        Inizializza lo Spazio Comportamentale a partire da una ReteFA
-        :param rete: la ReteFA in input
-        """
-        # Inizializza gli attributi
+    def __init__(self):
         self.nodi = []
         self.archi = []
         self.nodoIniziale = Nodo()
 
-        # Generazione del nodo iniziale dell'SC
-        # Insieriamo tutti gli stati iniziali di tutti i comportamenti
-        comp: Comportamento
-        for comp in rete.comportamenti:
-            self.nodoIniziale.addStato(comp.statoIniziale)
+    def creaSpazioComportamentale(self, rete: ReteFA):
+        """
+        Crea lo Spazio Comportamentale a partire da una ReteFA
+        :param rete: la ReteFA in input
+        """
 
-        # Inserisce un buffer vuoto per ciascun link presente nella rete
-        link: Link
-        for link in rete.links:
-            self.nodoIniziale.addContenutoLink(Buffer(link, ""))
+        #Inizializziamo il nodo iniziale
+        self.creaNodoIniziale(rete)
 
-        # Avendo tutti i buffer vuoti, il nodo iniziale è sempre anche finale
-        self.nodoIniziale.isFinale = True
-
-        # Ora il nodo iniziale è inizializzato
         # Aggiungiamo il nodo iniziale allo SC
         self.nodi.append(self.nodoIniziale)
 
@@ -608,6 +597,24 @@ class SpazioComportamentale:
                 # Altrimenti, non c'è nessun nodo corrente
                 nodoCorr = None
             # Proseguiamo col while
+
+    def creaNodoIniziale(self, rete: ReteFA):
+        """
+        Generazione del nodo iniziale dello SC
+        :param rete: la ReteFA in input
+        """
+        # Insieriamo tutti gli stati iniziali di tutti i comportamenti
+        comp: Comportamento
+        for comp in rete.comportamenti:
+            self.nodoIniziale.addStato(comp.statoIniziale)
+
+        # Inserisce un buffer vuoto per ciascun link presente nella rete
+        link: Link
+        for link in rete.links:
+            self.nodoIniziale.addContenutoLink(Buffer(link, ""))
+
+        # Avendo tutti i buffer vuoti, il nodo iniziale è sempre anche finale
+        self.nodoIniziale.isFinale = True
 
     def addArco(self, arco: Arco) -> None:
         """
@@ -756,7 +763,8 @@ if __name__ == '__main__':
 
     rete = ReteFA.fromXML(xmlPath)
 
-    sc = SpazioComportamentale(rete)
+    sc = SpazioComportamentale()
+    sc.creaSpazioComportamentale(rete)
     sc.potaturaRidenominazione()
 
     print("ciao")
