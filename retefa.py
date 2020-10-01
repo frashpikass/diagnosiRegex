@@ -412,9 +412,10 @@ class Nodo:
         # Verifico se ogni stato in questo nodo è anche nell'altro nodo
         # todo: forse ci converrebbe definire gli stati come fossero un set? Quanto ci costa il cast a set?
         other: Nodo
-        return self.isFinale == other.isFinale \
-               and set(self.stati) == set(other.stati) \
-               and set(self.contenutoLink) == set(other.contenutoLink)
+        return self.indiceOsservazione == other.indiceOsservazione \
+            and self.isFinale == other.isFinale \
+            and set(self.stati) == set(other.stati) \
+            and set(self.contenutoLink) == set(other.contenutoLink)
 
     def __str__(self):
         out = f"Nome: {self.nome}, Stati:"
@@ -428,6 +429,8 @@ class Nodo:
 
         if self.isFinale:
             out = out + ", finale"
+
+        out = out + ", Indice Osservazione " + str(self.indiceOsservazione)
 
         return out
 
@@ -635,7 +638,9 @@ class SpazioComportamentale:
                 for trans in stato.transizioniUscenti:
                     # Ricaviamo il nodo successivo a partire dal nodo corrente
 
-                    if (trans.osservabilita == "") or (trans.osservabilita == osservazioneLineare[nodoCorr.indiceOsservazione +1]):
+                    if (trans.osservabilita == "") \
+                            or (nodoCorr.indiceOsservazione < len(osservazioneLineare)
+                                and trans.osservabilita == osservazioneLineare[nodoCorr.indiceOsservazione]):
 
                         # verificando la fattibilità della transizione uscente
                         nodoSucc = nodoCorr.verificaFattibilitaTransizione(trans)
@@ -843,9 +848,9 @@ if __name__ == '__main__':
 
     rete = ReteFA.fromXML(xmlPath)
 
-    #sc = SpazioComportamentale()
-    #sc.creaSpazioComportamentale(rete)
-    #sc.potaturaRidenominazione()
+    sc = SpazioComportamentale()
+    sc.creaSpazioComportamentale(rete)
+    sc.potaturaRidenominazione()
 
     scol = SpazioComportamentale()
     scol.creaSpazioComportamentaleOsservazioneLineare(rete, ["o3","o2"])
