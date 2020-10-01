@@ -370,6 +370,7 @@ class Nodo:
         self.contenutoLink = []
         self.isPotato = True
         self.isFinale = False
+        # todo: aggiungere attributo per tenere traccia dell'indice dell'osservazione
 
     def addStato(self, stato: Stato) -> None:
         """
@@ -541,6 +542,7 @@ class SpazioComportamentale:
         self.archi = []
         self.nodoIniziale = Nodo()
 
+        # todo: isola il resto del codice di questo init in un metodo dedicato chiamato dopo la costruzione dello SC
         # Generazione del nodo iniziale dell'SC
         # Insieriamo tutti gli stati iniziali di tutti i comportamenti
         comp: Comportamento
@@ -727,7 +729,7 @@ class SpazioComportamentale:
         # Inizializza il numero univoco dei nodi
         counter = 0
 
-        # Elimina nodi da potare
+        # Elimina nodi da potare (creo una nuova lista che non contiene i nodi potati)
         self.nodi = [n for n in self.nodi if not n.isPotato]
 
         # Rinomina i nodi non potati
