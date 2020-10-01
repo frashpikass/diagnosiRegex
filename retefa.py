@@ -370,7 +370,7 @@ class Nodo:
         self.contenutoLink = []
         self.isPotato = True
         self.isFinale = False
-        # todo: aggiungere attributo per tenere traccia dell'indice dell'osservazione
+        self.indiceOsservazione = 0
 
     def addStato(self, stato: Stato) -> None:
         """
@@ -532,32 +532,20 @@ class Arco:
 
 
 class SpazioComportamentale:
-    def __init__(self, rete: ReteFA):
-        """
-        Inizializza lo Spazio Comportamentale a partire da una ReteFA
-        :param rete: la ReteFA in input
-        """
-        # Inizializza gli attributi
+    def __init__(self):
         self.nodi = []
         self.archi = []
         self.nodoIniziale = Nodo()
 
-        # todo: isola il resto del codice di questo init in un metodo dedicato chiamato dopo la costruzione dello SC
-        # Generazione del nodo iniziale dell'SC
-        # Insieriamo tutti gli stati iniziali di tutti i comportamenti
-        comp: Comportamento
-        for comp in rete.comportamenti:
-            self.nodoIniziale.addStato(comp.statoIniziale)
+    def creaSpazioComportamentale(self, rete: ReteFA):
+        """
+        Crea lo Spazio Comportamentale a partire da una ReteFA
+        :param rete: la ReteFA in input
+        """
 
-        # Inserisce un buffer vuoto per ciascun link presente nella rete
-        link: Link
-        for link in rete.links:
-            self.nodoIniziale.addContenutoLink(Buffer(link, ""))
+        #Inizializziamo il nodo iniziale
+        self.creaNodoIniziale(rete)
 
-        # Avendo tutti i buffer vuoti, il nodo iniziale è sempre anche finale
-        self.nodoIniziale.isFinale = True
-
-        # Ora il nodo iniziale è inizializzato
         # Aggiungiamo il nodo iniziale allo SC
         self.nodi.append(self.nodoIniziale)
 
@@ -610,6 +598,103 @@ class SpazioComportamentale:
                 # Altrimenti, non c'è nessun nodo corrente
                 nodoCorr = None
             # Proseguiamo col while
+
+    def creaSpazioComportamentaleOsservazioneLineare(self, rete: ReteFA, osservazioneLineare: List[str]):
+        """
+        Crea lo Spazio Comportamentale relativo all'osservazione lineare a partire da una ReteFA in ingresso.
+        L'osservazione lineare è un array di etichette di osservazioni sulle transizioni.
+        :param rete: la ReteFA in input
+        :param osservazioneLineare: l'osservazione lineare in input
+        """
+
+        #Inizializziamo il nodo iniziale
+        self.creaNodoIniziale(rete)
+
+        # Inizializziamo a 0 l'indice dell'osservazione del nodoIniziale
+        self.nodoIniziale.indiceOsservazione = 0
+        self.nodoIniziale.isFinale = self.nodoIniziale.isFinale and (self.nodoIniziale.indiceOsservazione == len(
+            osservazioneLineare))
+
+        # Aggiungiamo il nodo iniziale allo SC
+        self.nodi.append(self.nodoIniziale)
+
+        # Ora dobbiamo esplorare la Rete FA per costruire lo SC
+
+        # Inizializzo una pila di nodi da esplorare
+        nodiDaEsplorare = []
+
+        # Inizializza il nodo di SC correntemente osservato
+        nodoCorr = self.nodoIniziale
+
+        # Esploriamo la rete FA e creiamo lo spazio comportamentale
+        # a partire dal nodo iniziale
+        while nodoCorr is not None:
+            # Scorri la lista degli stati correnti del nodo corrente
+            # scorri ogni transizione uscente di ciascuno stato corrente
+            for stato in nodoCorr.stati:
+                for trans in stato.transizioniUscenti:
+                    # Ricaviamo il nodo successivo a partire dal nodo corrente
+
+                    if (trans.osservabilita == "") or (trans.osservabilita == osservazioneLineare[nodoCorr.indiceOsservazione +1]):
+
+                        # verificando la fattibilità della transizione uscente
+                        nodoSucc = nodoCorr.verificaFattibilitaTransizione(trans)
+
+                        # Se esiste una transizione fattibile (ovvero il nodo successivo non è None)
+                        if nodoSucc is not None:
+
+                            # Aggiungiamo info sull'indice di osservazione
+                            if trans.osservabilita == "":
+                                nodoSucc.indiceOsservazione = nodoCorr.indiceOsservazione
+                            else:  # ovvero se la transizione è osservabile e corrisponde all'osservazione successiva
+                                nodoSucc.indiceOsservazione = nodoCorr.indiceOsservazione + 1
+
+                            # Cerco nell'SC il riferimento al nodo in uscita alla transizione
+                            rif = self.ricercaNodo(nodoSucc)
+
+                            # Se il nodo non è già nell'SC, dunque non è stato trovato
+                            if rif is None:
+                                # Aggiungo il nodo all'SC
+                                self.addNodo(nodoSucc)
+                                # Push del nodo sullo stack di nodi da esplorare
+                                nodiDaEsplorare.append(nodoSucc)  # append è come push sulle liste
+                                # ATTENZIONE: usare la lista di Python come stack può
+                                # essere inefficiente https://www.geeksforgeeks.org/stack-in-python/
+                                rif = nodoSucc
+
+                            # Aggiungo sempre l'arco legato alla transizione fattibile
+                            self.addArco(Arco(nodoCorr, rif, trans))
+
+            # Recuperiamo il nuovo nodo corrente da studiare, se ci sono nodi correnti
+            # try:
+            #     nodoCorr = nodiDaEsplorare.pop()
+            # except IndexError:
+            #     # Altrimenti, non c'è nessun nodo corrente
+            #     nodoCorr = None
+            if nodiDaEsplorare:
+                nodoCorr = nodiDaEsplorare.pop()
+            else:
+                # Altrimenti, non c'è nessun nodo corrente
+                nodoCorr = None
+            # Proseguiamo col while
+
+    def creaNodoIniziale(self, rete: ReteFA):
+        """
+        Generazione del nodo iniziale dello SC
+        :param rete: la ReteFA in input
+        """
+        # Insieriamo tutti gli stati iniziali di tutti i comportamenti
+        comp: Comportamento
+        for comp in rete.comportamenti:
+            self.nodoIniziale.addStato(comp.statoIniziale)
+
+        # Inserisce un buffer vuoto per ciascun link presente nella rete
+        link: Link
+        for link in rete.links:
+            self.nodoIniziale.addContenutoLink(Buffer(link, ""))
+
+        # Avendo tutti i buffer vuoti, il nodo iniziale è sempre anche finale
+        self.nodoIniziale.isFinale = True
 
     def addArco(self, arco: Arco) -> None:
         """
@@ -758,7 +843,12 @@ if __name__ == '__main__':
 
     rete = ReteFA.fromXML(xmlPath)
 
-    sc = SpazioComportamentale(rete)
-    sc.potaturaRidenominazione()
+    #sc = SpazioComportamentale()
+    #sc.creaSpazioComportamentale(rete)
+    #sc.potaturaRidenominazione()
+
+    scol = SpazioComportamentale()
+    scol.creaSpazioComportamentaleOsservazioneLineare(rete, ["o3","o2"])
+    scol.potaturaRidenominazione()
 
     print("ciao")
