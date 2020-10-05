@@ -362,6 +362,35 @@ class ReteFA:
                 return link
         return None
 
+    def verificaOsservazioneLineare(self, osservazioneLineare : List[str]) -> bool:
+        """
+        Verifica che tutte le etichette di Osservabilità presenti nell'osservazione lineare esistano associate alle
+        transizioni di questa ReteFA.
+        :param osservazioneLineare: una lista di etichette di osservabilità
+        :return: True se tutte le etichette sono valide, False altrimenti
+        """
+
+        # Prendiamo tutte le etichette di osservazioneLineare, una volta sola
+        setEtichette = set(osservazioneLineare)
+
+        # Per ciascuna etichetta nell'insieme, verifico che
+        # esista nella reteFA una transizione con tale etichetta associata
+        for etichetta in setEtichette:
+            trovata = False
+
+            c: Comportamento
+            for c in self.comportamenti:
+                t: Transizione
+                for t in c.transizioni:
+                    if t.osservabilita == etichetta:
+                        trovata = True
+                        break
+                if trovata:
+                    break
+            if not trovata:
+                return False
+        return True
+
 
 class Nodo:
     def __init__(self):
@@ -838,8 +867,7 @@ class SpazioComportamentale:
         self.archi = [a for a in self.archi if not a.isPotato]
 
         # Verifica che il nodoIniziale sia ancora presente nello spazio comportamentale
-        if self.ricercaNodo(self.nodoIniziale) is None:
-            self.nodoIniziale = None
+        self.nodoIniziale = self.ricercaNodo(self.nodoIniziale)
 
 
 ## METODI ##
@@ -859,13 +887,20 @@ if __name__ == '__main__':
 
     rete = ReteFA.fromXML(xmlPath)
 
+    # Test validaOsservazioneLineare
+    # print(rete.verificaOsservazioneLineare([]))
+    # print(rete.verificaOsservazioneLineare(["o3", "o2"]))
+    # print(rete.verificaOsservazioneLineare(["o3", "o4"]))
+    # print(rete.verificaOsservazioneLineare(["o3", "o2", "o4"]))
+    # print(rete.verificaOsservazioneLineare(["o5", "o2", "o4"]))
+
     sc = SpazioComportamentale()
     sc.creaSpazioComportamentale(rete)
     sc.potaturaRidenominazione()
 
     scol = SpazioComportamentale()
     # scol.creaSpazioComportamentaleOsservazioneLineare(rete, ["o3","o2"])
-    scol.creaSpazioComportamentaleOsservazioneLineare(rete, ["o3", "o4"])
+    scol.creaSpazioComportamentaleOsservazioneLineare(rete, [])
     scol.potaturaRidenominazione()
 
     print("ciao")
