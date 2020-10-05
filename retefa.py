@@ -638,6 +638,9 @@ class SpazioComportamentale:
                 for trans in stato.transizioniUscenti:
                     # Ricaviamo il nodo successivo a partire dal nodo corrente
 
+                    # (filtro) Procedi lungo questo ramo solo se
+                    # - la transizione ha osservabilità nulla
+                    # - oppure se ha un'etichetta di osservabilità che ci aspettiamo nell'osservazione lineare
                     if (trans.osservabilita == "") \
                             or (nodoCorr.indiceOsservazione < len(osservazioneLineare)
                                 and trans.osservabilita == osservazioneLineare[nodoCorr.indiceOsservazione]):
@@ -653,6 +656,10 @@ class SpazioComportamentale:
                                 nodoSucc.indiceOsservazione = nodoCorr.indiceOsservazione
                             else:  # ovvero se la transizione è osservabile e corrisponde all'osservazione successiva
                                 nodoSucc.indiceOsservazione = nodoCorr.indiceOsservazione + 1
+
+                            # impostiamo correttamente il flag isFinale del nodo successivo
+                            nodoSucc.isFinale = nodoSucc.isFinale and (
+                                    nodoSucc.indiceOsservazione == len(osservazioneLineare))
 
                             # Cerco nell'SC il riferimento al nodo in uscita alla transizione
                             rif = self.ricercaNodo(nodoSucc)
@@ -718,8 +725,8 @@ class SpazioComportamentale:
     def ricercaNodo(self, nodo: Nodo) -> Nodo:
         """
         Ricerca per valore il nodo dato fra i nodi dello SpazioComportamentale
-        :param nodo:
-        :return:
+        :param nodo: il nodo da cercare per valore in questa struttura
+        :return: il riferimento al nodo cercato se presente, None altrimenti
         """
         # Scorriamo i nodi dello spazio comportamentale
         # alla ricerca di un nodo che sia come quello in input
@@ -830,6 +837,10 @@ class SpazioComportamentale:
         # Elimina gli archi da potare
         self.archi = [a for a in self.archi if not a.isPotato]
 
+        # Verifica che il nodoIniziale sia ancora presente nello spazio comportamentale
+        if self.ricercaNodo(self.nodoIniziale) is None:
+            self.nodoIniziale = None
+
 
 ## METODI ##
 
@@ -853,7 +864,8 @@ if __name__ == '__main__':
     sc.potaturaRidenominazione()
 
     scol = SpazioComportamentale()
-    scol.creaSpazioComportamentaleOsservazioneLineare(rete, ["o3","o2"])
+    # scol.creaSpazioComportamentaleOsservazioneLineare(rete, ["o3","o2"])
+    scol.creaSpazioComportamentaleOsservazioneLineare(rete, ["o3", "o4"])
     scol.potaturaRidenominazione()
 
     print("ciao")
