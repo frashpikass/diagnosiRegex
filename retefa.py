@@ -854,7 +854,14 @@ class SpazioComportamentale:
         """
         Decide quali nodi e archi potare, li rimuove dallo Spazio Comportamentale e dunque li ridenomina
         usando un ID progressivo dato dall'ordine di esplorazione
+
+        :raises ValueError: se lo spazio comportamentale è vuoto prima o dopo la potatura
         """
+        # Verifichiamo se ci sono nodi nello spazio comportamentale, in tal caso la potatura non ha senso
+        if not self.nodi or not self.archi:
+            raise ValueError("Impossibile procedere con la potatura: lo spazio comportamentale è vuoto. Verificare "
+                             "gli input.")
+
         # Decidi quali archi e quali nodi potare
         self.decidiPotatura()
 
@@ -876,8 +883,13 @@ class SpazioComportamentale:
         # Verifica che il nodoIniziale sia ancora presente nello spazio comportamentale
         self.nodoIniziale = self.ricercaNodo(self.nodoIniziale)
 
+        # Verifichiamo se ci sono nodi nello spazio comportamentale, in questo caso la potatura è stata totale e
+        # potrebbe essere indice di un problema
+        if not self.nodi or not self.archi:
+            raise ValueError("La potatura ha generato uno Spazio Comportamentale vuoto. Verificare gli input.")
 
-## METODI ##
+
+        ## METODI ##
 
 
 ## MAIN ##
@@ -894,7 +906,14 @@ if __name__ == '__main__':
 
     rete = ReteFA.fromXML(xmlPath)
 
-    ol = ["o3","o2"]
+    # Caso test: spazio comportamentale vuoto
+    # ol = []
+    # Caso test: potatura totale
+    # ol = ["o3",""]
+    # Caso test: etichette non presenti nella ReteFA
+    # ol = ["o9803","o45"]
+    # Caso test: osservazione valida
+    ol = ["o3", "o2"]
 
     # Test validaOsservazioneLineare
     # print(rete.verificaOsservazioneLineare([]))
