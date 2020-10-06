@@ -367,7 +367,8 @@ class ReteFA:
         Verifica che tutte le etichette di Osservabilità presenti nell'osservazione lineare esistano associate alle
         transizioni di questa ReteFA.
         :param osservazioneLineare: una lista di etichette di osservabilità
-        :return: True se tutte le etichette sono valide, False altrimenti
+        :return: True se l'osservazione lineare è compatibile con questa ReteFA
+        :raises ValueError: se l'osservazione lineare è incompatibile con questa ReteFA
         """
 
         # Prendiamo tutte le etichette di osservazioneLineare, una volta sola
@@ -388,7 +389,8 @@ class ReteFA:
                 if trovata:
                     break
             if not trovata:
-                return False
+                raise ValueError(f"L'etichetta di osservabilità '{etichetta}' non è presente in nessuna transizione "
+                                 f"della ReteFA inserita.")
         return True
 
 
@@ -560,7 +562,8 @@ class Arco:
         self.isPotato = True
 
     def __str__(self):
-        return self.transizione.nome + ", " + self.transizione.osservabilita + ", " + self.transizione.rilevanza
+        return "(" + self.nodo0.nome + "," + self.nodo1.nome + "), " + self.transizione.nome + ", " +\
+               self.transizione.osservabilita + ", " + self.transizione.rilevanza
 
 
 class SpazioComportamentale:
@@ -637,9 +640,13 @@ class SpazioComportamentale:
         L'osservazione lineare è un array di etichette di osservazioni sulle transizioni.
         :param rete: la ReteFA in input
         :param osservazioneLineare: l'osservazione lineare in input
+        :raises ValueError: se l'osservazione lineare in input presenta errori
         """
 
-        #Inizializziamo il nodo iniziale
+        # Verifichiamo la validità dell'osservazione lineare in input
+        rete.verificaOsservazioneLineare(osservazioneLineare)
+
+        # Inizializziamo il nodo iniziale
         self.creaNodoIniziale(rete)
 
         # Inizializziamo a 0 l'indice dell'osservazione del nodoIniziale
@@ -887,9 +894,11 @@ if __name__ == '__main__':
 
     rete = ReteFA.fromXML(xmlPath)
 
+    ol = ["o3","o2"]
+
     # Test validaOsservazioneLineare
     # print(rete.verificaOsservazioneLineare([]))
-    # print(rete.verificaOsservazioneLineare(["o3", "o2"]))
+    print(rete.verificaOsservazioneLineare(ol))
     # print(rete.verificaOsservazioneLineare(["o3", "o4"]))
     # print(rete.verificaOsservazioneLineare(["o3", "o2", "o4"]))
     # print(rete.verificaOsservazioneLineare(["o5", "o2", "o4"]))
@@ -900,7 +909,7 @@ if __name__ == '__main__':
 
     scol = SpazioComportamentale()
     # scol.creaSpazioComportamentaleOsservazioneLineare(rete, ["o3","o2"])
-    scol.creaSpazioComportamentaleOsservazioneLineare(rete, [])
+    scol.creaSpazioComportamentaleOsservazioneLineare(rete, ol)
     scol.potaturaRidenominazione()
 
     print("ciao")
