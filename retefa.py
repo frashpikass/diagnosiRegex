@@ -560,10 +560,11 @@ class Arco:
         self.nodo1 = nodo1
         self.transizione = transizione
         self.isPotato = True
+        self.rilevanza = transizione.rilevanza
 
     def __str__(self):
         return "(" + self.nodo0.nome + "," + self.nodo1.nome + "), " + self.transizione.nome + ", " +\
-               self.transizione.osservabilita + ", " + self.transizione.rilevanza
+               self.transizione.osservabilita + ", " + self.rilevanza
 
 
 class SpazioComportamentale:
@@ -620,6 +621,7 @@ class SpazioComportamentale:
 
                         # Aggiungo sempre l'arco legato alla transizione fattibile
                         self.addArco(Arco(nodoCorr, rif, trans))
+                        # todo: eventuale punto aggiunta dell'arco alla lista di adiacenza del nodoCorr
 
             # Recuperiamo il nuovo nodo corrente da studiare, se ci sono nodi correnti
             # try:
@@ -712,6 +714,7 @@ class SpazioComportamentale:
 
                             # Aggiungo sempre l'arco legato alla transizione fattibile
                             self.addArco(Arco(nodoCorr, rif, trans))
+                            # todo: eventuale punto aggiunta dell'arco alla lista di adiacenza del nodoCorr
 
             # Recuperiamo il nuovo nodo corrente da studiare, se ci sono nodi correnti
             # try:
