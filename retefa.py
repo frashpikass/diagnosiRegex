@@ -402,6 +402,7 @@ class Nodo:
         self.isPotato = True
         self.isFinale = False
         self.indiceOsservazione = 0
+        self.archiUscenti = []
 
     def addStato(self, stato: Stato) -> None:
         """
@@ -750,9 +751,11 @@ class SpazioComportamentale:
     def addArco(self, arco: Arco) -> None:
         """
         Aggiunge un arco alla lista degli archi di questo Spazio Comportamentale
+        e alla lista di archi uscenti dal nodo di origine dell'arco
         :param arco: l'arco da aggiungere
         """
         self.archi.append(arco)
+        arco.nodo0.archiUscenti.append(arco)
 
     def addNodo(self, nodo: Nodo) -> None:
         """
@@ -891,6 +894,85 @@ class SpazioComportamentale:
         if not self.nodi or not self.archi:
             raise ValueError("La potatura ha generato uno Spazio Comportamentale vuoto. Verificare gli input.")
 
+    def trovaSerieArchi(self) -> List[Arco]:
+        """
+        Ricerca di una sequenza "obbligata" di archi,
+        senza possibili bivi al suo interno (ovvero una serie).
+        :return: una serie di archi all'interno di questo SpazioComportamentale
+        """
+        # Inizializzo la sequenza in modo da darle lo scope corretto
+        sequenza = []
+
+        # Cerco e compilo una sequenza obbligata nello sc
+        # # (la prima che trovo a partire dal nodo iniziale ni)
+        ni: Nodo
+        for ni in self.nodi:
+            t: Arco
+            for t in ni.archiUscenti:
+                sequenza = []
+                while t is not None:
+                    if len(t.nodo1.archiUscenti) == 1:
+                        # verifico se ci sono più di due archi entranti in nodo1[t]
+                        # metto questa verifica nell'if per risparmiare calcoli inutili
+                        # (mi interessa che ci sia un solo arco entrante in nodo1[t])
+                        numeroArchiEntranti = 0
+                        a: Arco
+                        for a in self.archi:
+                            if a.nodo1 == t.nodo1:
+                                numeroArchiEntranti += 1
+                            if numeroArchiEntranti > 1:
+                                break
+
+                        # Se anche gli archi entranti sono uguali a 1 procedo
+                        if numeroArchiEntranti == 1:
+                            sequenza.append(t)
+                            t = t.nodo1.archiUscenti[1]
+                        else:
+                            # sono giunto ad un nodo di fine sequenza con più entrate
+                            sequenza.append(t)
+                            t = None
+                        # fine if lunghezza archi entranti
+                    else:
+                        # siamo di fronte a un nodo di fine sequenza con più uscite
+                        sequenza.append(t)
+                        t = None
+                    # fine if sulla lunghezza degli archi uscenti
+                # fine del while che compone la sequenza
+                # Se ho già trovato una sequenza, non esploro più un altro arco del nodo di partenza
+                if len(sequenza) >= 2:
+                    break
+            # fine del for sugli archi uscenti da ni
+            # Se ho già trovato una sequenza, non cerco più un altro nodo di partenza
+            if len(sequenza) >= 2:
+                break
+        # fine del for sui nodi dello sc
+        return sequenza
+
+    def trovaParalleloArchi(self) -> List[Arco]:
+        """
+        Ricerca di un parallelo di archi fra due nodi nello Spazio Comportamentale
+        :return: una lista di archi paralleli
+        """
+        parallelo = []
+        n: Nodo
+        for n in self.nodi:
+            # Inizializzo la lista di nodi adiacenti di n osservati
+            nodiOsservati = []
+            a: Arco
+            for a in n.archiUscenti:
+                if a.nodo1 in nodiOsservati:
+                    # Abbiamo trovato un nodo che si ripete fra quelli adiacenti a n
+                    # quindi compiliamo il parallelo e ritorniamolo
+                    b: Arco
+                    for b in n.archiUscenti:
+                        if b.nodo1 == a.nodo1:
+                            parallelo.append(b)
+                    # Ho trovato degli archi paralleli, quindi li ritorno
+                    return parallelo
+                # Ho osservato un nodo nuovo fra quelli adiacenti a n
+                nodiOsservati.append(a.nodo1)
+        # Non ho trovato dei paralleli, ritorno la lista vuota
+        return parallelo
 
         ## METODI ##
 
