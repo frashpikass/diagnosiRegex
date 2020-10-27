@@ -556,12 +556,12 @@ class Nodo:
 
 
 class Arco:
-    def __init__(self, nodo0: Nodo, nodo1: Nodo, transizione: Transizione):
+    def __init__(self, nodo0: Nodo, nodo1: Nodo, transizione: Transizione, rilevanza: str):
         self.nodo0 = nodo0
         self.nodo1 = nodo1
         self.transizione = transizione
         self.isPotato = True
-        self.rilevanza = transizione.rilevanza
+        self.rilevanza = rilevanza
 
     def __str__(self):
         return "(" + self.nodo0.nome + "," + self.nodo1.nome + "), " + self.transizione.nome + ", " +\
@@ -621,8 +621,7 @@ class SpazioComportamentale:
                             rif = nodoSucc
 
                         # Aggiungo sempre l'arco legato alla transizione fattibile
-                        self.addArco(Arco(nodoCorr, rif, trans))
-                        # todo: eventuale punto aggiunta dell'arco alla lista di adiacenza del nodoCorr
+                        self.addArco(Arco(nodoCorr, rif, trans, trans.rilevanza))
 
             # Recuperiamo il nuovo nodo corrente da studiare, se ci sono nodi correnti
             # try:
@@ -714,8 +713,7 @@ class SpazioComportamentale:
                                 rif = nodoSucc
 
                             # Aggiungo sempre l'arco legato alla transizione fattibile
-                            self.addArco(Arco(nodoCorr, rif, trans))
-                            # todo: eventuale punto aggiunta dell'arco alla lista di adiacenza del nodoCorr
+                            self.addArco(Arco(nodoCorr, rif, trans, trans.rilevanza))
 
             # Recuperiamo il nuovo nodo corrente da studiare, se ci sono nodi correnti
             # try:
@@ -813,10 +811,7 @@ class SpazioComportamentale:
         Decide dove potare lo Spazio Comportamentale segnando nodi e archi che non portano a stati finali.
         """
         # precondizione: ogni nuovo nodo e arco ha inizialmente isPotato=true
-        for nodo in self.nodi:
-            nodo.isPotato = True
-        for arco in self.archi:
-            arco.isPotato = True
+        self.setAllIsPotato(True)
 
         # Per determinare quali nodi e quali archi vadano potati
         # parto da ciascun nodo finale dell'SC e risalgo gli archi in ingresso
@@ -856,6 +851,44 @@ class SpazioComportamentale:
                         # Se non c'è inizializziamo l'arco
                         nextArco = None
 
+    def potaturaArchi(self) -> None:
+        """
+        Rimuovi dallo spazio comportamentale solo gli archi con IsPotato == True
+        """
+        # Pota gli archi da potare, sia dalla lista degli archi,
+        # sia dalle liste d'adiacenza di ciascun nodo
+
+        # Elimina gli archi da potare
+        self.archi = [a for a in self.archi if not a.isPotato]
+
+        # Elimino gli archi potati dalle liste di adiacenza di ogni nodo non potato
+        for nodo in self.nodi:
+            nodo.archiUscenti = [a for a in nodo.archiUscenti if not a.isPotato]
+
+    def potatura(self) -> None:
+        """
+        Rimuovi dallo spazio comportamentale tutti i nodi e tutti gli archi con ssPotato == True.
+        Saranno potati anche tutti gli archi entranti e uscenti in ciascun nodo potato.
+        """
+        # Copiamo i nodi dello spazio comportamentale non potati
+        nodiClone = []
+        # La copia avviene per riferimento e non per valore
+        # Effettua potatura dei nodi da potare e indica come da potare gli archi ad essi connessi
+        for nodo in self.nodi:
+            if not nodo.isPotato:
+                nodiClone.append(nodo)
+            else:
+                # flaggo come da potare tutti gli archi entranti e uscenti dal nodo
+                a: Arco
+                for a in self.archi:
+                    if a.nodo0 == nodo or a.nodo1 == nodo:
+                        a.isPotato = True
+        # Aggiorno i nodi coi nodi non potati
+        self.nodi = nodiClone
+        # Pota gli archi da potare, sia dalla lista degli archi,
+        # sia dalle liste d'adiacenza di ciascun nodo
+        self.potaturaArchi()
+
     def potaturaRidenominazione(self) -> None:
         """
         Decide quali nodi e archi potare, li rimuove dallo Spazio Comportamentale e dunque li ridenomina
@@ -875,16 +908,13 @@ class SpazioComportamentale:
         # Inizializza il numero univoco dei nodi
         counter = 0
 
-        # Elimina nodi da potare (creo una nuova lista che non contiene i nodi potati)
-        self.nodi = [n for n in self.nodi if not n.isPotato]
+        # Elimina nodi e archi da potare
+        self.potatura()
 
         # Rinomina i nodi non potati
         for nodo in self.nodi:
             nodo.nome = str(counter)
             counter = counter + 1
-
-        # Elimina gli archi da potare
-        self.archi = [a for a in self.archi if not a.isPotato]
 
         # Verifica che il nodoIniziale sia ancora presente nello spazio comportamentale
         self.nodoIniziale = self.ricercaNodo(self.nodoIniziale)
@@ -973,6 +1003,20 @@ class SpazioComportamentale:
                 nodiOsservati.append(a.nodo1)
         # Non ho trovato dei paralleli, ritorno la lista vuota
         return parallelo
+
+    def setAllIsPotato(self, isPotato) -> None:
+        """
+        Imposta il flag isPotato di tutti gli archi e i nodi dello Spazio Comportamentale
+        al valore isPotato dato in input.
+
+        :param isPotato: il valore a cui settare gli archi e i nodi
+        """
+        for arco in self.archi:
+            arco.isPotato = isPotato
+        for nodo in self.nodi:
+            nodo.isPotato = isPotato
+
+
 
         ## METODI ##
 
