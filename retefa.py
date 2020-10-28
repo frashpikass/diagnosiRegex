@@ -3,6 +3,7 @@ File di descrizione degli elementi della struttura dati in input.
 """
 from typing import List
 import xmlschema
+import copy
 import xml.etree as ET
 
 
@@ -420,7 +421,8 @@ class Nodo:
 
     def clone(self):
         """
-        Crea e ritorna una deep copy del nodo corrente
+        Crea e ritorna una deep copy del nodo corrente.
+        Warning: le liste di adiacenza non saranno copiate!
         :return: una deep copy del nodo corrente
         """
         out = Nodo()
@@ -570,6 +572,10 @@ class Arco:
 
 class SpazioComportamentale:
     def __init__(self):
+        self.nodi: List[Nodo]
+        self.archi: List[Arco]
+        self.nodoIniziale: Nodo
+
         self.nodi = []
         self.archi = []
         self.nodoIniziale = Nodo()
@@ -1015,6 +1021,201 @@ class SpazioComportamentale:
             arco.isPotato = isPotato
         for nodo in self.nodi:
             nodo.isPotato = isPotato
+
+    def espressioneRegolare(self) -> str:
+        """
+        Genera la diagnosi (espressione regolare) relativa a uno SpazioComportamentale semplificando archi in serie,
+        in parallelo e cappi.
+        :return: L'espressione regolare è la stringa di rilevanza dell'unico arco rimasto dopo la semplificazione
+        """
+        # Cloniamo questo Spazio Comportamentale nell'automa scN
+        # Questa clonazione è una copia deep poiché le operazioni seguenti romperebbero i legami fra archi e nodi
+        # dello spazio comportamentale corrente.
+        scN = copy.deepcopy(self)
+
+        # Definisco un nuovo nodo iniziale n0, un nuovo nodo finale nq per scN
+        n0 = scN.nodoIniziale # inizialmente è pari al nodo iniziale di scN
+        nq = None
+
+        # Verifichiamo se nel nodo iniziale sono presenti archi entranti
+        esisteTransizioneEntranteANodoIniziale = False
+        for arco in scN.archi:
+            if arco.nodo1 == scN.nodoIniziale:
+                esisteTransizioneEntranteANodoIniziale = True
+                break
+
+        # Se abbiamo trovato un arco entrante nel nodo iniziale
+        # creiamo un nuovo nodo iniziale n0 ed un arco con
+        # etichette nulle da n0 al nodo iniziale di scN
+        if esisteTransizioneEntranteANodoIniziale:
+            # Creiamo il nodo n0, nodo iniziale di scN
+            n0 = Nodo()
+            n0.nome = "n0"
+            n0.isPotato = False
+            n0.isPotato = True
+
+            # Creiamo l'arco da n0 al vecchio nodoIniziale
+            a0 = Arco(n0, scN.nodoIniziale, transizione = None, rilevanza="")
+            a0.isPotato = False
+
+            # Aggiungiamo a scN il nodo n0 e l'arco a0
+            scN.addNodo(n0)
+            scN.addArco(a0)
+
+        # Verifichiamo se ci sono più stati di accettazione
+        # Creiamo una lista di stati di accettazione
+        statiAccettazione = [n for n in scN.nodi if n.isFinale]
+
+        # Esiste una transizione uscente dall'unico stato di accettazione?
+        # Se esistono più stati di accettazione o esiste
+        # una transizione uscente dall'unico stato di accettazione...
+        if len(statiAccettazione) > 1 or (len(statiAccettazione) == 1 and len(statiAccettazione[0].archiUscenti) >= 1):
+            # Vogliamo che l'unico stato di accettazione/nodo finale sia nq
+            for nodo in statiAccettazione:
+                nodo.isFinale = False
+
+            # Inizializziamo nq, nodo finale di scN
+            nq = Nodo()
+            nq.nome = "nq"
+            nq.isPotato = False
+            nq.isFinale = True
+
+            # Aggiungiamo a scN il nodo nq
+            scN.addNodo(nq)
+
+            # Creiamo un arco (eps-transizione) da ciascuno stato di
+            # accettazione di scN al nuovo nodo finale nq
+            for n in statiAccettazione:
+                aq = Arco(n, nq, None, "")
+                aq.isPotato = False
+                # Aggiungiamo a scN l'arco costruito
+                scN.addArco(aq)
+        else:
+            # Altrimenti lo stato finale nq è l'unico stato di accettazione
+            nq = statiAccettazione[0]
+        # Fine della creazione degli stati unici n0 e nq
+
+        # Definizione dell'espressione regolare
+        while len(scN.archi) > 1:
+            # Esiste una serie di archi fra due nodi?
+            serie = self.trovaSerieArchi()
+            # se la serie non è vuota
+            if serie:
+                # Sostituire la serie con l'arco <n,strRilevanza,n'>
+                # Definisco la stringa di rilevanza
+                strRilevanza = ""
+                for t in serie:
+                    strRilevanza += t.rilevanza
+                strRilevanza = "("+strRilevanza+")"
+
+                # Tengo traccia dei nodi iniziale e finale della serie
+                nodoInizioSerie = serie[0].nodo0
+                nodoFineSerie = serie[-1].nodo1
+
+                # Resettiamo isPotato per tutti gli archi e tutti i nodi di scN
+                scN.setAllIsPotato(False)
+
+                # Indichiamo come da potare da scN tutti gli archi presenti nella serie
+                # e tutti i nodi nella serie eccetto il primo e l'ultimo
+                for arco in serie:
+                    arco.isPotato = True
+                    if arco.nodo1 is not nodoFineSerie:
+                        arco.nodo1.isPotato = True
+
+                # Elimino nodi e archi indicati come isPotato == True
+                scN.potatura()
+
+                # Creo il nuovo arco che sostituisce la serie potata, e lo aggiungo
+                scN.addArco(Arco(nodoInizioSerie, nodoFineSerie, None, strRilevanza))
+            # Fine analisi serie
+
+            else:
+                # Non c'è la serie. Esistono archi paralleli fra due nodi?
+                parallelo = scN.trovaParalleloArchi()
+                if parallelo:
+                    # Sostituzione del parallelo di archi con un solo arco
+                    # Resettiamo isPotato per tutti gli archi e tutti i nodi di scN
+                    scN.setAllIsPotato(False)
+
+                    # Definisco la stringa di rilevanza e marchio isPotato sugli archi del parallelo
+                    strRilevanza = ""
+                    t: Arco
+                    for t in parallelo:
+                        if strRilevanza != "":
+                            strRilevanza += "|"
+                        strRilevanza += t.rilevanza
+                        t.isPotato = True
+                    strRilevanza = "(" + strRilevanza + ")"
+
+                    # Potiamo solo gli archi segnati come isPotato (i nodi restano inalterati)
+                    # NOTA: questa è una scelta di efficienza, perché non ci sono nodi da potare
+                    scN.potaturaArchi()
+
+                    # Creiamo l'arco che sostituisce il parallelo e lo introduciamo in scN
+                    a = Arco(parallelo[0].nodo0, parallelo[0].nodo1, None, strRilevanza)
+                    a.isPotato = False
+                    scN.addArco(a)
+                # Fine analisi parallelo
+
+                else:
+                    # Non c'è neanche il parallelo.
+                    # Esiste un nodo intermedio con tanti archi in/out e dei cappi?
+
+                    # Resettiamo isPotato per tutti gli archi e tutti i nodi di scN
+                    scN.setAllIsPotato(False)
+
+                    # Definisco la stringa di rilevanza
+                    strRilevanza = ""
+
+                    # Peschiamo un nodo intermedio, né iniziale né finale
+                    nodoIntermedio = None
+                    for nodo in scN.nodi:
+                        if nodo is not n0 and nodo is not nq:
+                            nodoIntermedio = nodo
+                            break
+
+                    # Se tale nodo  intermedio esiste, studiamo i suoi cappi
+                    if nodoIntermedio is not None:
+                        # Marchiamo il nodoIntermedio come da potare
+                        nodoIntermedio.isPotato = True
+
+                        # Ciclo sugli archi entranti a nodoIntermedio, eccetto i cappi
+                        arcoEntrante: Arco
+                        for arcoEntrante in scN.archi:
+                            if arcoEntrante.nodo1 is nodoIntermedio and arcoEntrante.nodo0 is not nodoIntermedio:
+                                # Ciclo sugli archi uscenti da nodoIntermedio, eccetto i cappi
+                                arcoUscente: Arco
+                                for arcoUscente in nodoIntermedio.archiUscenti:
+                                    if arcoUscente.nodo1 is not nodoIntermedio:
+                                        # Inizializzo la stringa di rilevanza
+                                        strRilevanza = ""
+
+                                        # Esiste un cappio su nodoIntermedio?
+                                        cappio: Arco
+                                        for cappio in nodoIntermedio.archiUscenti:
+                                            if cappio.nodo1 is nodoIntermedio:
+                                                strRilevanza = "(" + cappio.rilevanza + ")*"
+                                                break
+                                        strRilevanza = "(" + arcoEntrante.rilevanza + strRilevanza + arcoUscente.rilevanza + ")"
+                                        # todo: e se esistessero più cappi sullo stesso nodo? Chiedi a Zanella
+
+                                        # Per ciascuna coppia di archi entrante/uscente su nodoIntermedio
+                                        # inseriamo un nuovo arco che tenga conto della presenza o meno di
+                                        # un cappio su nodoIntermedio
+                                        a = Arco(arcoEntrante.nodo0, arcoUscente.nodo1, None, strRilevanza)
+                                        a.isPotato = False
+                                        # Introduco il nuovo arco
+                                        scN.addArco(a)
+                        # Ora posso rimuovere nodoIntermedio e tutti i suoi vecchi archi entranti e uscenti
+                        scN.potatura()
+                    # Fine analisi nodo intermedio/cappi
+                # Fine analisi nodo intermedio/cappi
+            # Fine analisi parallelo e nodo intermedio/cappi
+        # Fine costruzione espressione regolare
+
+        # L'espressione regolare è la stringa di rilevanza
+        # dell'unico arco rimasto in scN
+        return scN.archi[0].rilevanza
 
 
 
