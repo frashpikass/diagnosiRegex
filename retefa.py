@@ -566,8 +566,12 @@ class Arco:
         self.rilevanza = rilevanza
 
     def __str__(self):
-        return "(" + self.nodo0.nome + "," + self.nodo1.nome + "), " + self.transizione.nome + ", " +\
+        if self.transizione:
+            return "(" + self.nodo0.nome + "," + self.nodo1.nome + "), " + self.transizione.nome + ", " +\
                self.transizione.osservabilita + ", " + self.rilevanza
+        else:
+            return "(" + self.nodo0.nome + "," + self.nodo1.nome + "), " + self.rilevanza
+
 
 
 class SpazioComportamentale:
@@ -940,7 +944,7 @@ class SpazioComportamentale:
         sequenza = []
 
         # Cerco e compilo una sequenza obbligata nello sc
-        # # (la prima che trovo a partire dal nodo iniziale ni)
+        # (la prima che trovo a partire dal nodo iniziale ni)
         ni: Nodo
         for ni in self.nodi:
             t: Arco
@@ -962,7 +966,7 @@ class SpazioComportamentale:
                         # Se anche gli archi entranti sono uguali a 1 procedo
                         if numeroArchiEntranti == 1:
                             sequenza.append(t)
-                            t = t.nodo1.archiUscenti[1]
+                            t = t.nodo1.archiUscenti[0]
                         else:
                             # sono giunto ad un nodo di fine sequenza con più entrate
                             sequenza.append(t)
@@ -970,7 +974,9 @@ class SpazioComportamentale:
                         # fine if lunghezza archi entranti
                     else:
                         # siamo di fronte a un nodo di fine sequenza con più uscite
-                        sequenza.append(t)
+                        # o quando siamo di fronte a un nodo di fine sequenza con 0 uscite
+                        if sequenza:
+                            sequenza.append(t)
                         t = None
                     # fine if sulla lunghezza degli archi uscenti
                 # fine del while che compone la sequenza
@@ -992,7 +998,7 @@ class SpazioComportamentale:
         parallelo = []
         n: Nodo
         for n in self.nodi:
-            # Inizializzo la lista di nodi adiacenti di n osservati
+            # Inizializzo la lista di nodi adiacenti ad n osservati
             nodiOsservati = []
             a: Arco
             for a in n.archiUscenti:
@@ -1098,15 +1104,19 @@ class SpazioComportamentale:
         # Definizione dell'espressione regolare
         while len(scN.archi) > 1:
             # Esiste una serie di archi fra due nodi?
-            serie = self.trovaSerieArchi()
+            serie = scN.trovaSerieArchi()
             # se la serie non è vuota
             if serie:
                 # Sostituire la serie con l'arco <n,strRilevanza,n'>
                 # Definisco la stringa di rilevanza
                 strRilevanza = ""
                 for t in serie:
-                    strRilevanza += t.rilevanza
-                strRilevanza = "("+strRilevanza+")"
+                    if len(t.rilevanza) > 1:
+                        # se la stringa di rilevanza precedentemente inserita non è una concatenazione,
+                        # metto le parentesi
+                        strRilevanza += f"({t.rilevanza})"
+                    elif len(t.rilevanza) == 1:
+                        strRilevanza += t.rilevanza
 
                 # Tengo traccia dei nodi iniziale e finale della serie
                 nodoInizioSerie = serie[0].nodo0
@@ -1139,13 +1149,22 @@ class SpazioComportamentale:
 
                     # Definisco la stringa di rilevanza e marchio isPotato sugli archi del parallelo
                     strRilevanza = ""
+                    hasEps = False
                     t: Arco
                     for t in parallelo:
                         if strRilevanza != "":
                             strRilevanza += "|"
-                        strRilevanza += t.rilevanza
+
+                        if t.rilevanza == "":
+                            # Caso: ho incontrato una rilevanza vuota: metto ε sse non c'è già un ε nell'alternativa
+                            if not hasEps:
+                                strRilevanza += "ε"
+                                hasEps = True
+                        else:
+                            # Caso: rilevanza non nulla, accodo dopo il |
+                            strRilevanza += t.rilevanza
+
                         t.isPotato = True
-                    strRilevanza = "(" + strRilevanza + ")"
 
                     # Potiamo solo gli archi segnati come isPotato (i nodi restano inalterati)
                     # NOTA: questa è una scelta di efficienza, perché non ci sono nodi da potare
@@ -1176,6 +1195,18 @@ class SpazioComportamentale:
 
                     # Se tale nodo  intermedio esiste, studiamo i suoi cappi
                     if nodoIntermedio is not None:
+                        # Esiste un cappio su nodoIntermedio? Creo la sua stringa di rilevanza
+                        # NOTA: Costruire la stringa qui ci consente di risparmiare cicli
+                        strRilevanzaCappio = ""
+                        cappio: Arco
+                        for cappio in nodoIntermedio.archiUscenti:
+                            if cappio.nodo1 is nodoIntermedio:
+                                if len(cappio.rilevanza) == 1:
+                                    strRilevanzaCappio = cappio.rilevanza + "*"
+                                elif len(cappio.rilevanza) > 1:
+                                    strRilevanzaCappio = "(" + cappio.rilevanza + ")*"
+                                break
+
                         # Marchiamo il nodoIntermedio come da potare
                         nodoIntermedio.isPotato = True
 
@@ -1187,31 +1218,23 @@ class SpazioComportamentale:
                                 arcoUscente: Arco
                                 for arcoUscente in nodoIntermedio.archiUscenti:
                                     if arcoUscente.nodo1 is not nodoIntermedio:
-                                        # Inizializzo la stringa di rilevanza
-                                        strRilevanza = ""
-
-                                        # Esiste un cappio su nodoIntermedio?
-                                        cappio: Arco
-                                        for cappio in nodoIntermedio.archiUscenti:
-                                            if cappio.nodo1 is nodoIntermedio:
-                                                strRilevanza = "(" + cappio.rilevanza + ")*"
-                                                break
-                                        strRilevanza = "(" + arcoEntrante.rilevanza + strRilevanza + arcoUscente.rilevanza + ")"
-                                        # todo: e se esistessero più cappi sullo stesso nodo? Chiedi a Zanella
+                                        # Costruisco la stringa di rilevanza tenendo conto dell'eventuale cappio
+                                        strRilevanzaFinale = arcoEntrante.rilevanza + strRilevanzaCappio + arcoUscente.rilevanza
 
                                         # Per ciascuna coppia di archi entrante/uscente su nodoIntermedio
                                         # inseriamo un nuovo arco che tenga conto della presenza o meno di
                                         # un cappio su nodoIntermedio
-                                        a = Arco(arcoEntrante.nodo0, arcoUscente.nodo1, None, strRilevanza)
+                                        a = Arco(arcoEntrante.nodo0, arcoUscente.nodo1, None, strRilevanzaFinale)
                                         a.isPotato = False
                                         # Introduco il nuovo arco
                                         scN.addArco(a)
+                                    # Fine If coppia di archi su nodoIntermedio (non cappio)
                         # Ora posso rimuovere nodoIntermedio e tutti i suoi vecchi archi entranti e uscenti
                         scN.potatura()
-                    # Fine analisi nodo intermedio/cappi
+                    # Fine if nodoIntermedio is not none
                 # Fine analisi nodo intermedio/cappi
             # Fine analisi parallelo e nodo intermedio/cappi
-        # Fine costruzione espressione regolare
+        # Fine while costruzione espressione regolare
 
         # L'espressione regolare è la stringa di rilevanza
         # dell'unico arco rimasto in scN
@@ -1224,13 +1247,27 @@ class SpazioComportamentale:
 
 ## MAIN ##
 
+if __name__ == '__main__':
+    # Test compito 3
+    xmlPath = 'inputs/input.xml'
+    rete = ReteFA.fromXML(xmlPath)
+    ol = ["o3", "o2"]
+
+    scol = SpazioComportamentale()
+    scol.creaSpazioComportamentaleOsservazioneLineare(rete, ol)
+    scol.potaturaRidenominazione()
+
+    regexp = scol.espressioneRegolare()
+
+    print(f"Risultato: {regexp}")
+
 if __name__ == '__test1__':
     xmlPath = 'inputs/input.xml'
 
     out = ReteFA.validateXML(xmlPath)
     print(out)
 
-if __name__ == '__main__':
+if __name__ == '__test2__':
     """Test per l'inizializzazione di una rete a partire da un input"""
     xmlPath = 'inputs/input.xml'
 
@@ -1257,7 +1294,6 @@ if __name__ == '__main__':
     sc.potaturaRidenominazione()
 
     scol = SpazioComportamentale()
-    # scol.creaSpazioComportamentaleOsservazioneLineare(rete, ["o3","o2"])
     scol.creaSpazioComportamentaleOsservazioneLineare(rete, ol)
     scol.potaturaRidenominazione()
 
