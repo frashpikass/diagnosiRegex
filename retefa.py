@@ -1,7 +1,7 @@
 """
 File di descrizione degli elementi della struttura dati in input.
 """
-from typing import List
+from typing import List, Dict
 import matplotlib.pyplot as plt
 import xmlschema
 import copy
@@ -1255,7 +1255,20 @@ class SpazioComportamentale:
             G.add_edge(arco.nodo0, arco.nodo1)
 
         
+class Chiusura(SpazioComportamentale):
+    def __init__(self):
+        self.nodiUscita: List[Nodo]
+        self.nodiUscita = []
 
+        self.nodiAccettazione: List[Nodo]
+        self.nodiAccettazione = []
+
+        self.nodiAccettazione: Dict[Nodo, str]
+        self.decorazioni = {}
+
+        self.diagnosi: str
+        self.diagnosi = ""
+        super().__init__()
 
 
 
@@ -1265,7 +1278,17 @@ class SpazioComportamentale:
 
 ## MAIN ##
 
-if __name__ == '__main__':
+if __name__ == '__compito 4__':
+    # Test compito 3
+    xmlPath = 'inputs/input.xml'
+    rete = ReteFA.fromXML(xmlPath)
+    ol = ["o3", "o2"]
+
+    scol = SpazioComportamentale()
+    scol.creaSpazioComportamentaleOsservazioneLineare(rete, ol)
+    scol.potaturaRidenominazione()
+
+if __name__ == '__compito 3__':
     # Test compito 3
     xmlPath = 'inputs/input.xml'
     rete = ReteFA.fromXML(xmlPath)
