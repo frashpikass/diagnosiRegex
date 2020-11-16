@@ -2,8 +2,10 @@
 File di descrizione degli elementi della struttura dati in input.
 """
 from typing import List
+import matplotlib.pyplot as plt
 import xmlschema
 import copy
+import networkx as nx
 import xml.etree as ET
 
 
@@ -1155,7 +1157,8 @@ class SpazioComportamentale:
                         if strRilevanza != "":
                             strRilevanza += "|"
 
-                        if t.rilevanza == "":
+                        if t.rilevanza == "" \
+                                and (t.rilevanza != "" or (t.rilevanza == "" and not hasEps)):
                             # Caso: ho incontrato una rilevanza vuota: metto ε sse non c'è già un ε nell'alternativa
                             if not hasEps:
                                 strRilevanza += "ε"
@@ -1239,6 +1242,20 @@ class SpazioComportamentale:
         # L'espressione regolare è la stringa di rilevanza
         # dell'unico arco rimasto in scN
         return scN.archi[0].rilevanza
+
+    def draw(self):
+        G = nx.MultiDiGraph()
+
+        # Aggiunta nodi
+        G.add_nodes_from(self.nodi)
+
+        # Costruzione edge
+        for arco in self.archi:
+            G.add_edge(arco.nodo0, arco.nodo1)
+
+        
+
+
 
 
 
