@@ -406,6 +406,7 @@ class Nodo:
         self.isFinale = False
         self.indiceOsservazione = 0
         self.archiUscenti = []
+        self.chiusura = None
 
     def addStato(self, stato: Stato) -> None:
         """
@@ -1244,6 +1245,56 @@ class SpazioComportamentale:
         # dell'unico arco rimasto in scN
         return scN.archi[0].rilevanza
 
+    def generaChiusuraSilenziosaDecorata(self, nodoIngresso: Nodo) -> None:
+        """
+        Genera una chiusura silenziosa decorata a partire dallo spazio comportamentale ed uno stato d'ingresso
+        per la chiusura.
+        Una chiusura silenziosa è il sottospazio dello Spazio Comportamentale contenente tutti e soli i nodi
+        raggiungibili a partire da nodoIngresso attraverso cammini di archi non osservabili.
+        Dopo l'esecuzione, la chiusura sarà associata all'attributo chiusura di nodoIngresso
+
+        :param nodoIngresso: il nodo dello spazio comportamentale da cui partire per ricavare la chiusura silenziosa
+        """
+        # Inizializzo la chiusura
+        nodoIngresso.chiusura = Chiusura()
+        nodoIngresso.chiusura.addNodo(nodoIngresso)
+        nodoIngresso.chiusura.nodoIniziale = nodoIngresso
+
+        # Inizializzo la pila di nodi da esplorare
+        nodiDaEsplorare = [nodoIngresso]
+
+        # Scorriamo i nodi da esplorare
+        while nodiDaEsplorare:
+            nodoCorr = nodiDaEsplorare.pop()
+            # Inizializzo i flag per vedere se è d'uscita/d'accettazione
+            isUscita = False
+            isAccettazione = nodoCorr.isFinale
+
+            # Esploriamo gli archi uscenti del nodoCorr
+            a: Arco
+            for a in nodoCorr.archiUscenti:
+                if a.osservabilita == "":
+                    # Se l'arco è non osservabile aggiungiamo l'arco alla chiusura
+                    nodoIngresso.chiusura.addArco(a)
+                    # Se il nodo di destinazione non è già nella chiusura lo aggiungiamo
+                    if a.nodo1 not in nodoIngresso.chiusura.nodi:
+                        nodoIngresso.chiusura.addNodo(a.nodo1)
+                        nodiDaEsplorare.append(a.nodo1)
+                    else:
+                        # Se l'arco è osservabile nodoCorr è anche nodo d'uscita e di accettazione
+                        isUscita = True
+                        isAccettazione = True
+
+            # Decidiamo se aggiungere nodoCorr anche ai nodi di uscita/di accettazione della chiusura
+            if isUscita:
+                nodoIngresso.chiusura.nodiUscita.append(nodoCorr)
+            if isAccettazione:
+                nodoIngresso.chiusura.nodiAccettazione.append(nodoCorr)
+        # Fine while sui nodi da esplorare
+
+        # Chiamata ad EspressioniRegolari su chiusura per decorare gli stati d'uscita
+        nodoIngresso.chiusura.espressioniRegolari()
+
     def draw(self):
         G = nx.MultiDiGraph()
 
@@ -1270,8 +1321,8 @@ class Chiusura(SpazioComportamentale):
         self.diagnosi = ""
         super().__init__()
 
-
-
+    def espressioniRegolari(self):
+        pass
 
         ## METODI ##
 
