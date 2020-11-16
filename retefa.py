@@ -1321,6 +1321,97 @@ class Chiusura(SpazioComportamentale):
         self.diagnosi = ""
         super().__init__()
 
+    def esistonoPiuArchiStessoPedice(self, pedici: Dict[Arco, Nodo]) -> bool:
+        """
+        Data la chiusura in ingresso ed il dizionario dei pedici,
+        ritorna True se esistono più archi marchiati dallo stesso pedice.
+        Precondizioni:
+            - I pedici corrispondono ai nodi di accettazione
+            - Un arco non nel dizionario dei pedici ha sicuramente pedice None
+            - Un arco con pedice None non è nel dizionario
+            - Il tipo di pedici è Dict[Arco, Nodo], con Arco e Nodo appartenenti a chiusura
+        :param pedici: il dizionario dei pedici (tipo: Dict[Arco,Nodo])
+        :return: True se esistono più archi marchiati dallo stesso pedice, False altrimenti
+        """
+
+        # Gli archi hanno lo stesso pedice anche se il loro pedice è None:
+        if not pedici:
+            # Caso limite: il dizionario dei pedici è vuoto
+            if len(self.archi) > 1:
+                # Tutti gli archi hanno pedice None
+                return True
+            else:
+                # C'è un solo arco, con pedice None
+                return False
+
+        else:
+            # Ammettiamo di avere archi con pedice non None
+            # Se il dizionario dei pedici non è vuoto
+            # verifico se ci sono più archi con pedice None
+            if len(self.archi) - len(pedici) > 1:
+                return True
+            else:
+                # Se non ci sono più archi con pedice None:
+                # uso un dizionario per tenere traccia del numero
+                # di occorrenze di ciascun nodo di accettazione
+                count = {}
+                for n in self.nodiAccettazione:
+                    count[n] = 0
+                pass
+
+            # Facciamo scorrere le chiavi del dizionario dei pedici per contare le occorrenze
+            for entry in pedici:
+                # Incremento il value del contatore relativo al pedice
+                count[entry] += 1
+                if count[entry] > 1:
+                    return True
+
+            # Se a fine ciclo non abbiamo mai tornato True,
+            # ci sono più archi ma ogni arco ha pedice diverso
+            return False
+
+    def trovaParalleloArchiStessoPedice(self, pedici: Dict[Arco, Nodo]) -> List[Arco]:
+        """
+        Controllo esistenza di un insieme [<n,r1,n'>,<n,r2,n'>,...,<n,rk,n'>] di archi
+        paralleli uscenti dallo stato n e diretti allo stato n',
+        tutti aventi lo stesso pedice o nessun pedice.
+
+        :param pedici: il dizionario dei pedici della chiusura
+        :return: l'insieme di archi paralleli con lo stesso pedice
+        """
+        parallelo = []
+        for n in self.nodi:
+            # Voglio trovare due archi con lo stesso nodo finale e lo stesso pedice
+            # Inizializzo il dizionario di nodi adiacenti ad n osservati
+            # associati al pedice dell'arco su cui li abbiamo reperiti
+            nodiOsservati = []
+            for a in n.archiUscenti:
+                # Inizializzo il pedice di a (per evitare errori di chiave)
+                pedice_a = None
+                if a in pedici:
+                    pedice_a = pedici[a]
+
+                # Ho già osservato il nodo1 di a con questo pedice?
+                if (a.nodo1, pedice_a) in nodiOsservati:
+                    # Abbiamo trovato un nodo che si ripete fra quelli adiacenti a n con lo stesso pedice
+                    # quindi compiliamo il parallelo e ritorniamolo
+                    for b in n.archiUscenti:
+                        # Inizializzo il pedice di b (per evitare errori di chiave)
+                        pedice_b = None
+                        if b in pedici:
+                            pedice_b = pedici[b]
+
+                        # Se la destinazione e il pedice di a e b sono gli stessi, compilo il parallelo
+                        if b.nodo1 == a.nodo1 and pedice_b == pedice_a:
+                            parallelo.append(b)
+                    # Ho trovato degli archi paralleli, quindi li ritorno
+                    return parallelo
+                else:
+                    # Ho osservato un nodo nuovo fra quelli adiacenti a n
+                    nodiOsservati.append((a.nodo1, pedice_a))
+            # End for. Non ho trovato dei paralleli, ritorno la lista vuota
+            return parallelo
+
     def espressioniRegolari(self):
         pass
 
