@@ -560,12 +560,13 @@ class Nodo:
 
 
 class Arco:
-    def __init__(self, nodo0: Nodo, nodo1: Nodo, transizione: Transizione, rilevanza: str):
+    def __init__(self, nodo0: Nodo, nodo1: Nodo, transizione: Transizione, rilevanza: str, osservabilita: str):
         self.nodo0 = nodo0
         self.nodo1 = nodo1
         self.transizione = transizione
         self.isPotato = True
         self.rilevanza = rilevanza
+        self.osservabilita = osservabilita
 
     def __str__(self):
         if self.transizione:
@@ -633,7 +634,7 @@ class SpazioComportamentale:
                             rif = nodoSucc
 
                         # Aggiungo sempre l'arco legato alla transizione fattibile
-                        self.addArco(Arco(nodoCorr, rif, trans, trans.rilevanza))
+                        self.addArco(Arco(nodoCorr, rif, trans, trans.rilevanza, trans.osservabilita))
 
             # Recuperiamo il nuovo nodo corrente da studiare, se ci sono nodi correnti
             # try:
@@ -725,7 +726,7 @@ class SpazioComportamentale:
                                 rif = nodoSucc
 
                             # Aggiungo sempre l'arco legato alla transizione fattibile
-                            self.addArco(Arco(nodoCorr, rif, trans, trans.rilevanza))
+                            self.addArco(Arco(nodoCorr, rif, trans, trans.rilevanza, trans.osservabilita))
 
             # Recuperiamo il nuovo nodo corrente da studiare, se ci sono nodi correnti
             # try:
@@ -1063,7 +1064,7 @@ class SpazioComportamentale:
             n0.isPotato = True
 
             # Creiamo l'arco da n0 al vecchio nodoIniziale
-            a0 = Arco(n0, scN.nodoIniziale, transizione = None, rilevanza="")
+            a0 = Arco(n0, scN.nodoIniziale, transizione = None, rilevanza="", osservabilita="")
             a0.isPotato = False
 
             # Aggiungiamo a scN il nodo n0 e l'arco a0
@@ -1094,7 +1095,7 @@ class SpazioComportamentale:
             # Creiamo un arco (eps-transizione) da ciascuno stato di
             # accettazione di scN al nuovo nodo finale nq
             for n in statiAccettazione:
-                aq = Arco(n, nq, None, "")
+                aq = Arco(n, nq, None, "", "")
                 aq.isPotato = False
                 # Aggiungiamo a scN l'arco costruito
                 scN.addArco(aq)
@@ -1138,7 +1139,7 @@ class SpazioComportamentale:
                 scN.potatura()
 
                 # Creo il nuovo arco che sostituisce la serie potata, e lo aggiungo
-                scN.addArco(Arco(nodoInizioSerie, nodoFineSerie, None, strRilevanza))
+                scN.addArco(Arco(nodoInizioSerie, nodoFineSerie, None, strRilevanza, osservabilita=""))
             # Fine analisi serie
 
             else:
@@ -1174,7 +1175,7 @@ class SpazioComportamentale:
                     scN.potaturaArchi()
 
                     # Creiamo l'arco che sostituisce il parallelo e lo introduciamo in scN
-                    a = Arco(parallelo[0].nodo0, parallelo[0].nodo1, None, strRilevanza)
+                    a = Arco(parallelo[0].nodo0, parallelo[0].nodo1, None, strRilevanza, osservabilita="")
                     a.isPotato = False
                     scN.addArco(a)
                 # Fine analisi parallelo
@@ -1227,7 +1228,7 @@ class SpazioComportamentale:
                                         # Per ciascuna coppia di archi entrante/uscente su nodoIntermedio
                                         # inseriamo un nuovo arco che tenga conto della presenza o meno di
                                         # un cappio su nodoIntermedio
-                                        a = Arco(arcoEntrante.nodo0, arcoUscente.nodo1, None, strRilevanzaFinale)
+                                        a = Arco(arcoEntrante.nodo0, arcoUscente.nodo1, None, strRilevanzaFinale, osservabilita="")
                                         a.isPotato = False
                                         # Introduco il nuovo arco
                                         scN.addArco(a)
