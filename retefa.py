@@ -2,10 +2,10 @@
 File di descrizione degli elementi della struttura dati in input.
 """
 from typing import List, Dict
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import xmlschema
 import copy
-import networkx as nx
+# import networkx as nx
 import xml.etree as ET
 
 
@@ -1295,15 +1295,15 @@ class SpazioComportamentale:
         # Chiamata ad EspressioniRegolari su chiusura per decorare gli stati d'uscita
         nodoIngresso.chiusura.espressioniRegolari()
 
-    def draw(self):
-        G = nx.MultiDiGraph()
-
-        # Aggiunta nodi
-        G.add_nodes_from(self.nodi)
-
-        # Costruzione edge
-        for arco in self.archi:
-            G.add_edge(arco.nodo0, arco.nodo1)
+    # def draw(self):
+    #     G = nx.MultiDiGraph()
+    #
+    #     # Aggiunta nodi
+    #     G.add_nodes_from(self.nodi)
+    #
+    #     # Costruzione edge
+    #     for arco in self.archi:
+    #         G.add_edge(arco.nodo0, arco.nodo1)
 
         
 class Chiusura(SpazioComportamentale):
@@ -1420,7 +1420,8 @@ class Chiusura(SpazioComportamentale):
 
 ## MAIN ##
 
-if __name__ == '__compito 4__':
+# if __name__ == '__compito 4__':
+if __name__ == '__main__':
     # Test compito 3
     xmlPath = 'inputs/input.xml'
     rete = ReteFA.fromXML(xmlPath)
