@@ -1062,7 +1062,7 @@ class SpazioComportamentale:
             n0 = Nodo()
             n0.nome = "n0"
             n0.isPotato = False
-            n0.isPotato = True
+            n0.isFinale = False
 
             # Creiamo l'arco da n0 al vecchio nodoIniziale
             a0 = Arco(n0, scN.nodoIniziale, transizione = None, rilevanza="", osservabilita="")
@@ -1113,14 +1113,7 @@ class SpazioComportamentale:
             if serie:
                 # Sostituire la serie con l'arco <n,strRilevanza,n'>
                 # Definisco la stringa di rilevanza
-                strRilevanza = ""
-                for t in serie:
-                    if len(t.rilevanza) > 1:
-                        # se la stringa di rilevanza precedentemente inserita non è una concatenazione,
-                        # metto le parentesi
-                        strRilevanza += f"({t.rilevanza})"
-                    elif len(t.rilevanza) == 1:
-                        strRilevanza += t.rilevanza
+                strRilevanza = SpazioComportamentale.componiStrRilevanzaSerie(serie)
 
                 # Tengo traccia dei nodi iniziale e finale della serie
                 nodoInizioSerie = serie[0].nodo0
@@ -1295,6 +1288,47 @@ class SpazioComportamentale:
         # Chiamata ad EspressioniRegolari su chiusura per decorare gli stati d'uscita
         nodoIngresso.chiusura.espressioniRegolari()
 
+    @staticmethod
+    def componiStrRilevanzaSerie(serie: List[Arco]) -> str:
+        """
+        A partire dalla serie in ingresso (una lista di Arco) considerata
+        genera la stringa di rilevanza corrispondente
+        :param serie: la lista di archi in serie da cui ricavare la stringa di rilevanza
+        :return: la stringa di rilevanza della serie
+        """
+        strRilevanza = ""
+        for t in serie:
+            if len(t.rilevanza) > 1:
+                # se la stringa di rilevanza precedentemente inserita non è una concatenazione,
+                # metto le parentesi
+                strRilevanza += f"({t.rilevanza})"
+            elif len(t.rilevanza) == 1:
+                strRilevanza += t.rilevanza
+        return strRilevanza
+
+    @staticmethod
+    def componiStrRilevanzaParallelo(parallelo: List[Arco]) -> str:
+        """
+        A partire dal parallelo in ingresso (una lista di Arco) considerato
+        genera la stringa di rilevanza corrispondente
+        :param parallelo: la lista di archi in parallelo da cui ricavare la stringa di rilevanza
+        :return: la stringa di rilevanza del parallelo
+        """
+        strRilevanza = ""
+        hasEps = False
+        for t in parallelo:
+            if strRilevanza != "" and (t.rilevanza != "" or (t.rilevanza == "" and not hasEps)):
+                strRilevanza += "|"
+
+            if t.rilevanza == "":
+                # Caso: ho incontrato una rilevanza vuota: metto ε sse non c'è già un ε nell'alternativa
+                if not hasEps:
+                    strRilevanza += "ε"
+                    hasEps = True
+            else:
+                # Caso: rilevanza non nulla, accodo dopo il |
+                strRilevanza += t.rilevanza
+
     # def draw(self):
     #     G = nx.MultiDiGraph()
     #
@@ -1412,7 +1446,222 @@ class Chiusura(SpazioComportamentale):
             # End for. Non ho trovato dei paralleli, ritorno la lista vuota
             return parallelo
 
-    def espressioniRegolari(self):
+    def espressioniRegolari(self) -> None:
+        """
+        Calcola le decorazioni per tutti i nodi di accettazione della chiusura,
+        poi determina la diagnosi della chiusura.
+        I valori risultanti sono disposti negli attributi decorazioni e diagnosi.
+        """
+
+        # Definiamo una struttura dizionario che gestisca i pedici della chiusura
+        # Il dizionario associa a ciascun arco della chiusura un pedice, ovvero
+        # il riferimento al nodo d'accettazione per cui è valida l'etichetta
+        # di rilevanza.
+        # - I pedici corrispondono ai nodi di accettazione
+        # - Un arco non nel dizionario dei pedici ha sicuramente pedice None
+        # - Un arco con pedice None non è nel dizionario
+        # - Il tipo di pedici è Dict[Arco, Nodo]
+        #	con Arco e Nodo appartenenti a chiusura
+        pedici: Dict[Arco, Nodo]
+        pedici = {}
+
+        # Cloniamo questa Chiusura nell'automa scN
+        # Questa clonazione è una copia deep poiché le operazioni seguenti romperebbero i legami fra archi e nodi
+        # della chiusura corrente.
+        scN = copy.deepcopy(self)
+
+        # Creo un dizionario che associ i riferimenti
+        # ai nodi della chiusura in input ai nodi della chiusura clonata
+        nodiClone2Origin: Dict[Nodo, Nodo]
+        nodiClone2Origin = {}
+        for i in range(1, len(self.nodi)):
+            # todo: verifica che l'ordine corrisponda dopo la clonazione
+            nodiClone2Origin[scN.nodi[i]] = self.nodi[i]
+        # Questo ci servirà a fine esecuzione per tradurre le decorazioni
+        # di scN nelle decorazioni della chiusura originale
+
+        # Definiamo un nuovo nodo iniziale n0, un nuovo nodo finale nq
+        n0 = None
+        nq = None
+        # Verifichiamo se nel nodo iniziale sono presenti archi entranti
+        esisteTransizioneEntranteANodoIniziale = False
+        for arco in scN.archi:
+            if arco.nodo1 == scN.nodoIniziale:
+                esisteTransizioneEntranteANodoIniziale = True
+                break
+
+        # 1:
+        # Se abbiamo trovato un arco entrante nel nodo iniziale
+        # creiamo un nuovo nodo iniziale n0 ed un arco con
+        # etichette nulle da n0 al nodo iniziale di scN
+        if esisteTransizioneEntranteANodoIniziale:
+            # Creiamo il nodo n0, nodo iniziale di scN
+            n0 = Nodo()
+            n0.nome = "n0"
+            n0.isPotato = False
+            n0.isFinale = False
+
+            # Creiamo l'arco da n0 al vecchio nodoIniziale
+            a0 = Arco(n0, scN.nodoIniziale, transizione=None, rilevanza="", osservabilita="")
+            a0.isPotato = False
+
+            # Aggiungiamo a scN il nodo n0 e l'arco a0
+            scN.addNodo(n0)
+            scN.addArco(a0)
+        else:
+            # 4:
+            n0 = scN.nodoIniziale
+
+        # 6: Inizializziamo nq, nodo finale di scN
+        # Creiamo il nodo n0, nodo iniziale di scN
+        nq = Nodo()
+        nq.nome = "nq"
+        nq.isPotato = False
+        nq.isFinale = True
+        # Aggiungiamo a scN il nodo nq
+        scN.addNodo(nq)
+
+        # 7-9:
+        # Creiamo un arco (eps-transizione) da ciascuno stato di
+        # accettazione di scN al nuovo nodo finale nq
+        for n in scN.nodiAccettazione:
+            aq = Arco(nodo0=n, nodo1=nq, transizione=None, rilevanza="", osservabilita="")
+            aq.isPotato = False
+
+            # Aggiungiamo a scN l'arco costruito
+            scN.addArco(aq)
+
+        # 11: ciclo principale
+        while len(scN.nodi) > 2 or scN.esistonoPiuArchiStessoPedice(pedici):
+            # 12: Esiste una serie di archi tra due nodi?
+            serie = scN.trovaSerieArchi()
+            if serie:
+                # 13: Se l'ultimo nodo della serie non è nq
+                # e il penultimo non è di accettazione
+                # e l'ultimo arco della serie non ha pedice...
+                # fine while ciclo principale
+
+                # Tengo traccia dei nodi iniziale e finale della serie
+                nodoInizioSerie = serie[0].nodo0
+                nodoPenultimoSerie = serie[-1].nodo0
+                nodoFineSerie = serie[-1].nodo1
+
+                # Verifico se l'ultimo arco della serie ha il pedice
+                ultimoArcoHaPedice = serie[-1] in pedici
+
+                # Tengo traccia del pedice con cui etichettare la stringa
+                pedice = None
+
+                # Definisco la stringa di rilevanza (e eventualmente il suo pedice)
+                strRilevanza = ""
+                # todo: ricontrolla bene perché potrebbe essere semplificabile
+                if ultimoArcoHaPedice:
+                    # L'ultimo arco ha pedice, righe 18-19
+                    # Sostituire la serie con l'arco
+                    # <nodoInizioSerie,strRilevanza(con pedice dell'ultimo arco della serie),nodoFineSerie>
+                    # Compilo la stringa di rilevanza r1...r_k
+                    strRilevanza = SpazioComportamentale.componiStrRilevanzaSerie(serie)
+
+                    # Fisso il pedice della nuova etichetta
+                    # a quello dell'ultimo arco della serie
+                    pedice = pedici[serie[-1]]
+                elif nodoFineSerie != nq and nodoPenultimoSerie not in scN.nodiAccettazione:
+                    # L'ultimo arco non ha pedice, righe 12-17
+                    # Sostituire la serie con l'arco <nodoInizioSerie,strRilevanza,nodoFineSerie>
+                    # Compilo la stringa di rilevanza r1...r_k
+                    strRilevanza = SpazioComportamentale.componiStrRilevanzaSerie(serie)
+                else:
+                    # la fine serie è il nodo finale,
+                    # o il penultimo della serie è nodo d'accettazione
+
+                    # Sostituire la serie con l'arco <nodoInizioSerie,strRilevanza,nodoFineSerie>
+                    # Definisco la stringa di rilevanza r1...r_(k-1)
+                    # con k-1 indice del penultimo arco nella serie
+
+                    # Consideriamo la serie meno il penultimo elemento
+                    strRilevanza = SpazioComportamentale.componiStrRilevanzaSerie(serie[0:-1])
+
+                    # Fisso il pedice al penultimo nodo della serie
+                    # che in questo caso è sempre uno stato d'accettazione
+                    pedice <- nodoPenultimoSerie
+                # Fine definizione strRilevanza e pedice
+
+                # Sostituzione dell'arco, righe 14:, 16:, 19:
+                # Resettiamo isPotato per tutti gli archi e tutti i nodi di scN
+                scN.setAllIsPotato(False)
+
+                # Indichiamo come da potare da scN tutti gli archi presenti nella serie
+                # e tutti i nodi nella serie eccetto il primo e l'ultimo
+                # In questo ciclo ripuliamo anche il dizionario se l'arco da potare è presente
+                # nel dizionario
+                for arco in serie:
+                    arco.isPotato = True
+                    if arco.nodo1 != nodoFineSerie:
+                        arco.nodo1.isPotato = True
+
+                    # Eliminiamo dal dizionario dei pedici la voce corrispondente all'arco da potare
+                    if arco in pedici:
+                        pedici.pop(arco)
+
+                    # Elimino nodi e archi indicati come isPotato == True
+                    scN.potatura()
+
+                    # Creo il nuovo arco che sostituisce la serie potata
+                    a = Arco(
+                        nodo0=nodoInizioSerie, nodo1=nodoFineSerie, transizione=None,
+                        rilevanza=strRilevanza, osservabilita="")
+                    a.isPotato = False
+
+                    # Introduco il nuovo arco
+                    scN.addArco(a)
+
+                    # Fissiamo l'eventuale pedice del nuovo arco
+                    if pedice is not None:
+                        pedici[a] = pedice
+            else:
+                # La serie non c'è.
+                # Analisi del parallelo. Righe 20-23:
+                # Esiste un parallelo contenente più archi con lo stesso (o nessun) pedice?
+                parallelo = scN.trovaParalleloArchiStessoPedice(pedici)
+
+                if parallelo:
+                    # Sostituzione del parallelo di archi con un solo arco
+                    # Resettiamo isPotato per tutti gli archi e tutti i nodi di scN
+                    scN.setAllIsPotato(False)
+                    # Definisco la stringa di rilevanza e marchio isPotato sugli archi del parallelo
+                    strRilevanza = SpazioComportamentale.componiStrRilevanzaParallelo(parallelo)
+
+                    # Definisco quali archi paralleli potare
+                    for t in parallelo:
+                        t.isPotato = True
+                        if t in pedici:
+                            pedici.pop(t)
+
+                    # Potiamo solo gli archi segnati come isPotato (i nodi restano inalterati), perché non ci sono nodi da potare
+                    # NOTA: questa è una scelta di efficienza, perché non ci sono nodi da potare
+                    scN.potaturaArchi()
+
+                    # Creiamo l'arco che sostituisce il parallelo
+                    a = Arco(nodo0=parallelo[0].nodo0, nodo1=parallelo[0].nodo1, transizione=None,
+                             rilevanza=strRilevanza, osservabilita="")
+                    a.isPotato = False
+
+                    # Introduco il nuovo arco
+                    scN.addArco(a)
+                    # Fissiamo l'eventuale pedice del nuovo arco
+                    # todo: occhio che stiamo cercando di accedere a un pedice che abbiamo rimosso
+                    if parallelo[0] in pedici:
+                        pedici[a, pedici[parallelo[0]]]
+
+                    # Fine analisi parallelo
+                    # todo: finire
+
+
+
+
+
+
+
         pass
 
         ## METODI ##
