@@ -365,7 +365,7 @@ class ReteFA:
                 return link
         return None
 
-    def verificaOsservazioneLineare(self, osservazioneLineare : List[str]) -> bool:
+    def verificaOsservazioneLineare(self, osservazioneLineare: List[str]) -> bool:
         """
         Verifica che tutte le etichette di Osservabilità presenti nell'osservazione lineare esistano associate alle
         transizioni di questa ReteFA.
@@ -450,9 +450,9 @@ class Nodo:
         # todo: forse ci converrebbe definire gli stati come fossero un set? Quanto ci costa il cast a set?
         other: Nodo
         return self.indiceOsservazione == other.indiceOsservazione \
-            and self.isFinale == other.isFinale \
-            and set(self.stati) == set(other.stati) \
-            and set(self.contenutoLink) == set(other.contenutoLink)
+               and self.isFinale == other.isFinale \
+               and set(self.stati) == set(other.stati) \
+               and set(self.contenutoLink) == set(other.contenutoLink)
 
     def __str__(self):
         out = f"Nome: {self.nome}, Stati:"
@@ -571,11 +571,10 @@ class Arco:
 
     def __str__(self):
         if self.transizione:
-            return "(" + self.nodo0.nome + "," + self.nodo1.nome + "), " + self.transizione.nome + ", " +\
-               self.transizione.osservabilita + ", " + self.rilevanza
+            return "(" + self.nodo0.nome + "," + self.nodo1.nome + "), " + self.transizione.nome + ", " + \
+                   self.transizione.osservabilita + ", " + self.rilevanza
         else:
             return "(" + self.nodo0.nome + "," + self.nodo1.nome + "), " + self.rilevanza
-
 
 
 class SpazioComportamentale:
@@ -594,7 +593,7 @@ class SpazioComportamentale:
         :param rete: la ReteFA in input
         """
 
-        #Inizializziamo il nodo iniziale
+        # Inizializziamo il nodo iniziale
         self.creaNodoIniziale(rete)
 
         # Aggiungiamo il nodo iniziale allo SC
@@ -1044,7 +1043,7 @@ class SpazioComportamentale:
         scN = copy.deepcopy(self)
 
         # Definisco un nuovo nodo iniziale n0, un nuovo nodo finale nq per scN
-        n0 = scN.nodoIniziale # inizialmente è pari al nodo iniziale di scN
+        n0 = scN.nodoIniziale  # inizialmente è pari al nodo iniziale di scN
         nq = None
 
         # Verifichiamo se nel nodo iniziale sono presenti archi entranti
@@ -1065,7 +1064,7 @@ class SpazioComportamentale:
             n0.isFinale = False
 
             # Creiamo l'arco da n0 al vecchio nodoIniziale
-            a0 = Arco(n0, scN.nodoIniziale, transizione = None, rilevanza="", osservabilita="")
+            a0 = Arco(n0, scN.nodoIniziale, transizione=None, rilevanza="", osservabilita="")
             a0.isPotato = False
 
             # Aggiungiamo a scN il nodo n0 e l'arco a0
@@ -1222,7 +1221,8 @@ class SpazioComportamentale:
                                         # Per ciascuna coppia di archi entrante/uscente su nodoIntermedio
                                         # inseriamo un nuovo arco che tenga conto della presenza o meno di
                                         # un cappio su nodoIntermedio
-                                        a = Arco(arcoEntrante.nodo0, arcoUscente.nodo1, None, strRilevanzaFinale, osservabilita="")
+                                        a = Arco(arcoEntrante.nodo0, arcoUscente.nodo1, None, strRilevanzaFinale,
+                                                 osservabilita="")
                                         a.isPotato = False
                                         # Introduco il nuovo arco
                                         scN.addArco(a)
@@ -1339,7 +1339,7 @@ class SpazioComportamentale:
     #     for arco in self.archi:
     #         G.add_edge(arco.nodo0, arco.nodo1)
 
-        
+
 class Chiusura(SpazioComportamentale):
     def __init__(self):
         self.nodiUscita: List[Nodo]
@@ -1451,6 +1451,8 @@ class Chiusura(SpazioComportamentale):
         Calcola le decorazioni per tutti i nodi di accettazione della chiusura,
         poi determina la diagnosi della chiusura.
         I valori risultanti sono disposti negli attributi decorazioni e diagnosi.
+        Se la chiusura non ha nodi finali, non può avere diagnosi e dunque la sua
+        diagnosi sarà None.
         """
 
         # Definiamo una struttura dizionario che gestisca i pedici della chiusura
@@ -1461,7 +1463,7 @@ class Chiusura(SpazioComportamentale):
         # - Un arco non nel dizionario dei pedici ha sicuramente pedice None
         # - Un arco con pedice None non è nel dizionario
         # - Il tipo di pedici è Dict[Arco, Nodo]
-        #	con Arco e Nodo appartenenti a chiusura
+        #   con Arco e Nodo appartenenti a chiusura
         pedici: Dict[Arco, Nodo]
         pedici = {}
 
@@ -1583,7 +1585,7 @@ class Chiusura(SpazioComportamentale):
 
                     # Fisso il pedice al penultimo nodo della serie
                     # che in questo caso è sempre uno stato d'accettazione
-                    pedice <- nodoPenultimoSerie
+                    pedice = nodoPenultimoSerie
                 # Fine definizione strRilevanza e pedice
 
                 # Sostituzione dell'arco, righe 14:, 16:, 19:
@@ -1628,18 +1630,6 @@ class Chiusura(SpazioComportamentale):
                     # Sostituzione del parallelo di archi con un solo arco
                     # Resettiamo isPotato per tutti gli archi e tutti i nodi di scN
                     scN.setAllIsPotato(False)
-                    # Definisco la stringa di rilevanza e marchio isPotato sugli archi del parallelo
-                    strRilevanza = SpazioComportamentale.componiStrRilevanzaParallelo(parallelo)
-
-                    # Definisco quali archi paralleli potare
-                    for t in parallelo:
-                        t.isPotato = True
-                        if t in pedici:
-                            pedici.pop(t)
-
-                    # Potiamo solo gli archi segnati come isPotato (i nodi restano inalterati), perché non ci sono nodi da potare
-                    # NOTA: questa è una scelta di efficienza, perché non ci sono nodi da potare
-                    scN.potaturaArchi()
 
                     # Creiamo l'arco che sostituisce il parallelo
                     a = Arco(nodo0=parallelo[0].nodo0, nodo1=parallelo[0].nodo1, transizione=None,
@@ -1653,16 +1643,137 @@ class Chiusura(SpazioComportamentale):
                     if parallelo[0] in pedici:
                         pedici[a, pedici[parallelo[0]]]
 
+                    # Definisco la stringa di rilevanza e marchio isPotato sugli archi del parallelo
+                    strRilevanza = SpazioComportamentale.componiStrRilevanzaParallelo(parallelo)
+
+                    for t in parallelo:
+                        # Definisco quali archi paralleli potare
+                        t.isPotato = True
+                        # Eliminiamo dal dizionario dei pedici la voce
+                        # corrispondente all'arco parallelo da potare
+                        if t in pedici:
+                            pedici.pop(t)
+
+                    # Potiamo solo gli archi segnati come isPotato (i nodi restano inalterati), perché non ci sono nodi da potare
+                    # NOTA: questa è una scelta di efficienza, perché non ci sono nodi da potare
+                    scN.potaturaArchi()
                     # Fine analisi parallelo
-                    # todo: finire
+                else:
+                    # Il parallelo non c'è
+                    # Analisi del nodo intermedio. Righe 24-48
+                    # Esiste un nodo intermedio con tanti archi in/out e dei cappi?
+                    # Resettiamo isPotato per tutti gli archi e tutti i nodi di scN
+                    scN.setAllIsPotato(False)
 
+                    # Definisco la stringa di rilevanza
+                    strRilevanza = ""
 
+                    # Peschiamo un nodo intermedio, né iniziale né finale
+                    nodoIntermedio = None
+                    for nodo in scN.nodi:
+                        if nodo != n0 and nodo != nq:
+                            nodoIntermedio = nodo
+                            break
 
+                    # Se tale nodo  intermedio esiste, studiamo i suoi cappi
+                    if nodoIntermedio is not None:
+                        # Esiste un cappio su nodoIntermedio? Creo la sua stringa di rilevanza
+                        # NOTA: Costruire la stringa qui ci consente di risparmiare cicli
+                        strRilevanzaCappio = ""
+                        nodoIntermedio: Nodo
+                        for cappio in nodoIntermedio.archiUscenti:
+                            if cappio.nodo1 == nodoIntermedio:
+                                if len(cappio.rilevanza) == 1:
+                                    strRilevanzaCappio = cappio.rilevanza + "*"
+                                elif len(cappio.rilevanza) > 1:
+                                    strRilevanzaCappio = f"({cappio.rilevanza})*"
+                                break
 
+                        # todo: verifica che accade se ci sono più cappi sullo stesso nodo con pedice diverso
+                        # todo: può esistere un cappio dotato di pedice?
 
+                        # Marchiamo il nodoIntermedio come da potare
+                        nodoIntermedio.isPotato = True
 
+                        # Ciclo sugli archi entranti a nodoIntermedio, eccetto i cappi
+                        for arcoEntrante in scN.archi:
+                            if arcoEntrante.nodo1 == nodoIntermedio and arcoEntrante.nodo0 != nodoIntermedio:
+                                for arcoUscente in nodoIntermedio.archiUscenti:
+                                    if arcoUscente.nodo1 != nodoIntermedio:
+                                        # Costruisco la stringa di rilevanza tenendo conto dell'eventuale cappio
+                                        strRilevanzaFinale = arcoEntrante.rilevanza \
+                                                             + strRilevanzaCappio \
+                                                             + arcoUscente.rilevanza
 
-        pass
+                                        # Per ciascuna coppia di archi entrante/uscente su nodoIntermedio
+                                        # inseriamo un nuovo arco che tenga conto della presenza o meno di
+                                        # un cappio su nodoIntermedio
+
+                                        # Creiamo l'arco che sostituisce il nodoIntermedio
+                                        a = Arco(nodo0=arcoEntrante.nodo0, nodo1=arcoUscente.nodo1, transizione=None,
+                                                 rilevanza=strRilevanzaFinale, osservabilita="")
+                                        a.isPotato = False
+
+                                        # Produciamo il pedice del nuovo arco
+                                        pedice = None
+                                        # Riga 27: Calcolo del pedice
+                                        if arcoUscente in pedici:
+                                            # Righe 40-46: il pedice dell'arco uscente non è NIL
+                                            pedice = pedici[arcoUscente]
+                                        elif arcoUscente.nodo1 == nq and arcoUscente.nodo0 in scN.nodiAccettazione:
+                                            # Righe 28-39:
+                                            pedice = arcoUscente.nodo0
+
+                                        # Introduco il nuovo arco
+                                        scN.addArco(a)
+                                        # Fissiamo l'eventuale pedice del nuovo arco
+                                        if pedice is not None:
+                                            pedici[a] = pedice
+                                    # Fine if coppia di archi su nodoIntermedio (non cappio)
+                                # Fine for ricerca secondo arco (non cappio)
+                        # Fine for ricerca primo arco (non cappio)
+                        # Ora posso rimuovere nodoIntermedio e tutti i suoi archi entranti e uscenti
+                        scN.potatura()
+                    # Fine if nodoIntermedio != None
+                # Fine controllo su parallelo/nodo intermedio
+            # fine controllo serie
+        # fine while principale
+
+        # Ora ci accingiamo a preparare l'uscita (righe 51-55:)
+        # Decoriamo la chiusura originale
+        for arco in pedici:
+            self.decorazioni[nodiClone2Origin[pedici[arco]]] = arco.rilevanza
+
+        # Calcoliamo anche la diagnosi della chiusura come
+        # l'alternativa delle decorazioni relative agli stati finali della chiusura
+        nodiFinali = [nodo for nodo in self.nodiAccettazione if nodo.isFinale]
+
+        if nodiFinali:
+            # La chiusura ha nodi finali
+            strDiagnosi = ""
+            hasEps = False
+
+            for n in nodiFinali:
+                # Metto un pipe solo se
+                # ho già del testo nella diagnosi
+                #   e devo aggiungere una stringa non nulla
+                #   oppure devo aggiungere una stringa nulla, ma non ho ancora messo un epsilon
+                if strDiagnosi != "" and (self.decorazioni[n] != "" or (self.decorazioni[n] == "" and not hasEps)):
+                    strDiagnosi += "|"
+
+                if self.decorazioni[n] == "":
+                    # Caso: ho incontrato una rilevanza vuota: metto ε sse non c'è già un ε nell'alternativa
+                    if not hasEps:
+                        strDiagnosi += "ε"
+                        hasEps = True
+                else:
+                    # Caso: decorazione non nulla, accodo dopo il |
+                    strDiagnosi += self.decorazioni[n]
+            # Trascrivo la diagnosi nella chiusura
+            self.diagnosi = strDiagnosi
+        else:
+            # La chiusura non ha nodi finali
+            self.diagnosi = None
 
         ## METODI ##
 
