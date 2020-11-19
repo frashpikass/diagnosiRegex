@@ -1775,17 +1775,16 @@ class Chiusura(SpazioComportamentale):
             # La chiusura non ha nodi finali
             self.diagnosi = None
 
-        ## METODI ##
-
     def generaDiagnosticatore(self) -> SpazioComportamentale:
         """
         A partire da uno spazio comportamentale genera un Diagnosticatore
         Precondizione: lo Spazio Comportale sul quale il metodo viene chiamato è popolato
         Postcondizione: viene generato un diagnosticatore, ovvero uno Spazio Comportamentale ove
-    		- ad ogni nodo corrisponde una chiusura con la sua diagnosi,
-    		- ad ogni arco corrisponde un arco osservabile di sc uscente dalla chiusura, etichettato con la sua
-    		osservabilità e come rilevanza la concatenazione della sua rilevanza e la decorazione del nodo di uscita
-    		della chiusura.
+            - ad ogni nodo corrisponde una chiusura con la sua diagnosi,
+            - ad ogni arco corrisponde un arco osservabile di sc uscente dalla chiusura, etichettato con la sua
+              osservabilità e come rilevanza la concatenazione della sua rilevanza e la decorazione del nodo di uscita
+              della chiusura.
+
         :return: lo spazio comportamentale che rappresenta il diagnosticatore
         """
         # Costruiamo lo spazio delle chiusure sCh
@@ -1818,7 +1817,7 @@ class Chiusura(SpazioComportamentale):
         # dello sCh (spazio chiusure)
         ni: Nodo
         for ni in nodiIngresso:
-            GeneraChiusuraSilenziosaDecorata(self, ni)
+            self.generaChiusuraSilenziosaDecorata(ni)
             # Genero un nuovo nodo xn in sCh corrispondente alla chiusura
             xn = Nodo()
             xn.nome = 'x' + ni.nome
@@ -1851,7 +1850,7 @@ class Chiusura(SpazioComportamentale):
                 # Per ogni arco a1 osservabile uscente da nu
                 a1: Arco
                 for a1 in nu.archiUscenti:
-                    if not a1.osservabilità:
+                    if not a1.osservabilita:
                         # cerchiamo nello spazio delle chiusure,
                         # il nodo y la cui chiusura ha nodo iniziale nodo1 di a1
                         y: Nodo
