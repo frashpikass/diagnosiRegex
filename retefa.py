@@ -448,6 +448,7 @@ class Nodo:
     def __eq__(self, other):
         # Verifico se ogni stato in questo nodo è anche nell'altro nodo
         # todo: forse ci converrebbe definire gli stati come fossero un set? Quanto ci costa il cast a set?
+        # todo: rivedere questo eq - il confronto di uguaglianza così va bene solo fino a Compito 3. == non farà mai più il confronto per riferimento!
         other: Nodo
         return self.indiceOsservazione == other.indiceOsservazione \
                and self.isFinale == other.isFinale \
@@ -1329,6 +1330,98 @@ class SpazioComportamentale:
                 # Caso: rilevanza non nulla, accodo dopo il |
                 strRilevanza += t.rilevanza
 
+    def generaDiagnosticatore(self):
+        """
+        A partire da uno spazio comportamentale genera un Diagnosticatore
+        Precondizione: lo Spazio Comportamentale sul quale il metodo viene chiamato è popolato
+        Postcondizione: viene generato un diagnosticatore, ovvero uno Spazio Comportamentale ove
+            - ad ogni nodo corrisponde una chiusura con la sua diagnosi,
+            - ad ogni arco corrisponde un arco osservabile di sc uscente dalla chiusura, etichettato con la sua
+              osservabilità e come rilevanza la concatenazione della sua rilevanza e la decorazione del nodo di uscita
+              della chiusura.
+
+        :return: lo spazio comportamentale che rappresenta il diagnosticatore
+        """
+        # Costruiamo lo spazio delle chiusure sCh
+        sCh = SpazioComportamentale()
+
+        # Trova tutti i possibili nodi di ingresso delle chiusure
+        # Un nodo d'ingresso della chiusura è
+        # - o il nodo iniziale di sc
+        # - o un nodo di sc avente almeno una transizione osservabile entrante
+
+        # Inizializzo la lista di nodi di ingresso
+        nodiIngresso: List[Nodo]
+        nodiIngresso = [self.nodoIniziale]
+        # Cerco tutti i nodi di sc con almeno un arco osservabile entrante O(V*V*E) = O(V**4)
+        # Scorro tutti i nodi
+        for n in self.nodi:
+            # Guardo i suoi archi adiacenti
+            for a in n.archiUscenti:
+                # Se l'arco non è osservabile, passo all'arco successivo
+                if a.osservabilita == "":
+                    continue
+                # Altrimenti, se il nodo di destinazione dell'arco osservabile non è in nodiIngresso
+                # Aggiungo il nodo di destinazione a nodiIngresso
+                if a.nodo1 not in nodiIngresso:
+                    nodiIngresso.append(a.nodo1)
+            # fine ciclo sugli archi uscenti di n
+        # fine ciclo sui nodi di sc
+
+        # Per ogni nodo di ingresso genera la chiusura e il nodo corrispondente
+        # dello sCh (spazio chiusure)
+        ni: Nodo
+        for ni in nodiIngresso:
+            self.generaChiusuraSilenziosaDecorata(ni)
+            # Genero un nuovo nodo xn in sCh corrispondente alla chiusura
+            xn = Nodo()
+            xn.nome = 'x' + ni.nome
+            xn.isPotato = False
+
+            # Il nodo xn è finale se e solo se la sua chiusura ha una diagnosi non nulla
+            # Nota: anche se ha una diagnosi con stringa vuota è finale
+            if not ni.chiusura.diagnosi:
+                xn.isFinale = True
+            else:
+                xn.isFinale = False
+
+            xn.chiusura = ni.chiusura
+
+            # Se il nodo generato ha una chiusura corrispondente al nodoIniziale dello sc,
+            # il nodo generato è anche nodoIniziale di sCh
+            if ni == self.nodoIniziale:
+                sCh.nodoIniziale = xn
+
+            # Aggiungiamo il nuovo nodo xn a sCh
+            sCh.addNodo(xn)
+
+        # Genera gli archi tra i nodi di sCh
+        # Per ogni nodo x dello spazio delle chiusure
+        x: Nodo
+        for x in sCh.nodi:
+            # Per ogni nodo di uscita della chiusura di x
+            nu: Nodo
+            for nu in x.chiusura.nodiUscita:
+                # Per ogni arco a1 osservabile uscente da nu
+                a1: Arco
+                for a1 in nu.archiUscenti:
+                    if not a1.osservabilita:
+                        # cerchiamo nello spazio delle chiusure,
+                        # il nodo y la cui chiusura ha nodo iniziale nodo1 di a1
+                        y: Nodo
+                        for y in sCh.nodi:
+                            if a1.nodo1 == y.chiusura.nodoIniziale:
+                                # creiamo l'arco a2 dal nodo x corrente
+                                # al nodo y dello spazio delle chiusure
+                                a2 = Arco(nodo0=x, nodo1=y, transizione=a1.transizione,
+                                          rilevanza=a1.rilevanza + x.chiusura.decorazioni[nu],
+                                          osservabilita=a1.osservabilita)
+                                a2.isPotato = False
+                                sCh.addArco(a2)
+
+        # Ritorna lo spazio delle chiusure generato, che ormai è un diagnosticatore
+        return sCh
+
     # def draw(self):
     #     G = nx.MultiDiGraph()
     #
@@ -1775,111 +1868,28 @@ class Chiusura(SpazioComportamentale):
             # La chiusura non ha nodi finali
             self.diagnosi = None
 
-    def generaDiagnosticatore(self) -> SpazioComportamentale:
-        """
-        A partire da uno spazio comportamentale genera un Diagnosticatore
-        Precondizione: lo Spazio Comportale sul quale il metodo viene chiamato è popolato
-        Postcondizione: viene generato un diagnosticatore, ovvero uno Spazio Comportamentale ove
-            - ad ogni nodo corrisponde una chiusura con la sua diagnosi,
-            - ad ogni arco corrisponde un arco osservabile di sc uscente dalla chiusura, etichettato con la sua
-              osservabilità e come rilevanza la concatenazione della sua rilevanza e la decorazione del nodo di uscita
-              della chiusura.
-
-        :return: lo spazio comportamentale che rappresenta il diagnosticatore
-        """
-        # Costruiamo lo spazio delle chiusure sCh
-        sCh = SpazioComportamentale()
-
-        # Trova tutti i possibili nodi di ingresso delle chiusure
-        # Un nodo d'ingresso della chiusura è
-        # - o il nodo iniziale di sc
-        # - o un nodo di sc avente almeno una transizione osservabile entrante
-
-        # Inizializzo la lista di nodi di ingresso
-        nodiIngresso: List[Nodo]
-        nodiIngresso.append(self.nodoIniziale)
-        # Cerco tutti i nodi di sc con almeno un arco osservabile entrante O(V*V*E) = O(V**4)
-        # Scorro tutti i nodi
-        for n in self.nodi:
-            # Guardo i suoi archi adiacenti
-            for a in n.archiUscenti:
-                # Se l'arco non è osservabile, passo all'arco successivo
-                if a.osservabilità == "":
-                    continue
-                # Altrimenti, se il nodo di destinazione dell'arco osservabile non è in nodiIngresso
-                # Aggiungo il nodo di destinazione a nodiIngresso
-                if a.nodo1 not in nodiIngresso:
-                    nodiIngresso.append(a.nodo1)
-            # fine ciclo sugli archi uscenti di n
-        # fine ciclo sui nodi di sc
-
-        # Per ogni nodo di ingresso genera la chiusura e il nodo corrispondente
-        # dello sCh (spazio chiusure)
-        ni: Nodo
-        for ni in nodiIngresso:
-            self.generaChiusuraSilenziosaDecorata(ni)
-            # Genero un nuovo nodo xn in sCh corrispondente alla chiusura
-            xn = Nodo()
-            xn.nome = 'x' + ni.nome
-            xn.isPotato = False
-
-            # Il nodo xn è finale se e solo se la sua chiusura ha una diagnosi non nulla
-            # Nota: anche se ha una diagnosi con stringa vuota è finale
-            if not ni.chiusura.diagnosi:
-                xn.isFinale = True
-            else:
-                xn.isFinale = False
-
-            xn.chiusura = ni.chiusura
-
-            # Se il nodo generato ha una chiusura corrispondente al nodoIniziale dello sc,
-            # il nodo generato è anche nodoIniziale di sCh
-            if ni == self.nodoIniziale:
-                sCh.nodoIniziale = xn
-
-            # Aggiungiamo il nuovo nodo xn a sCh
-            sCh.addNodo(xn)
-
-        # Genera gli archi tra i nodi di sCh
-        # Per ogni nodo x dello spazio delle chiusure
-        x: Nodo
-        for x in sCh.nodi:
-            # Per ogni nodo di uscita della chiusura di x
-            nu: Nodo
-            for nu in x.chiusura.nodiUscita:
-                # Per ogni arco a1 osservabile uscente da nu
-                a1: Arco
-                for a1 in nu.archiUscenti:
-                    if not a1.osservabilita:
-                        # cerchiamo nello spazio delle chiusure,
-                        # il nodo y la cui chiusura ha nodo iniziale nodo1 di a1
-                        y: Nodo
-                        for y in sCh.nodi:
-                            if a1.nodo1 == y.chiusura.nodoIniziale:
-                                # creiamo l'arco a2 dal nodo x corrente
-                                # al nodo y dello spazio delle chiusure
-                                a2 = Arco(nodo0=x, nodo1=y, transizione=a1.transizione,
-                                          rilevanza=a1.rilevanza + x.chiusura.decorazioni[nu],
-                                          osservabilita=a1.osservabilita)
-                                a2.isPotato = False
-                                sCh.addArco(a2)
-
-        # Ritorna lo spazio delle chiusure generato, che ormai è un diagnosticatore
-        return sCh
-
 
 ## MAIN ##
 
 # if __name__ == '__compito 4__':
 if __name__ == '__main__':
-    # Test compito 3
+    a = Nodo()
+    a.nome = "A"
+    b = Nodo()
+    b.nome = "B"
+
+    print(f"{a==b}")
+
+    # Test compito 4
     xmlPath = 'inputs/input.xml'
     rete = ReteFA.fromXML(xmlPath)
     ol = ["o3", "o2"]
 
-    scol = SpazioComportamentale()
-    scol.creaSpazioComportamentaleOsservazioneLineare(rete, ol)
-    scol.potaturaRidenominazione()
+    sc = SpazioComportamentale()
+    sc.creaSpazioComportamentale(rete)
+    sc.potaturaRidenominazione()
+
+    diagnosticatore = sc.generaDiagnosticatore()
 
 if __name__ == '__compito 3__':
     # Test compito 3
