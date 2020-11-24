@@ -895,7 +895,7 @@ class SpazioComportamentale:
                 # flaggo come da potare tutti gli archi entranti e uscenti dal nodo
                 a: Arco
                 for a in self.archi:
-                    if a.nodo0 == nodo or a.nodo1 == nodo:
+                    if a.nodo0 is nodo or a.nodo1 is nodo:
                         a.isPotato = True
         # Aggiorno i nodi coi nodi non potati
         self.nodi = nodiClone
@@ -962,7 +962,7 @@ class SpazioComportamentale:
                         numeroArchiEntranti = 0
                         a: Arco
                         for a in self.archi:
-                            if a.nodo1 == t.nodo1:
+                            if a.nodo1 is t.nodo1:
                                 numeroArchiEntranti += 1
                             if numeroArchiEntranti > 1:
                                 break
@@ -1011,7 +1011,7 @@ class SpazioComportamentale:
                     # quindi compiliamo il parallelo e ritorniamolo
                     b: Arco
                     for b in n.archiUscenti:
-                        if b.nodo1 == a.nodo1:
+                        if b.nodo1 is a.nodo1:
                             parallelo.append(b)
                     # Ho trovato degli archi paralleli, quindi li ritorno
                     return parallelo
@@ -1050,7 +1050,7 @@ class SpazioComportamentale:
         # Verifichiamo se nel nodo iniziale sono presenti archi entranti
         esisteTransizioneEntranteANodoIniziale = False
         for arco in scN.archi:
-            if arco.nodo1 == scN.nodoIniziale:
+            if arco.nodo1 is scN.nodoIniziale:
                 esisteTransizioneEntranteANodoIniziale = True
                 break
 
@@ -1269,15 +1269,16 @@ class SpazioComportamentale:
             for a in nodoCorr.archiUscenti:
                 if a.osservabilita == "":
                     # Se l'arco è non osservabile aggiungiamo l'arco alla chiusura
-                    nodoIngresso.chiusura.addArco(a)
+                    # NOTA: usiamo append(a) per non andare a rovinare le liste di adiacenza
+                    nodoIngresso.chiusura.archi.append(a)
                     # Se il nodo di destinazione non è già nella chiusura lo aggiungiamo
                     if a.nodo1 not in nodoIngresso.chiusura.nodi:
                         nodoIngresso.chiusura.addNodo(a.nodo1)
                         nodiDaEsplorare.append(a.nodo1)
-                    else:
-                        # Se l'arco è osservabile nodoCorr è anche nodo d'uscita e di accettazione
-                        isUscita = True
-                        isAccettazione = True
+                else:
+                    # Se l'arco è osservabile nodoCorr è anche nodo d'uscita e di accettazione
+                    isUscita = True
+                    isAccettazione = True
 
             # Decidiamo se aggiungere nodoCorr anche ai nodi di uscita/di accettazione della chiusura
             if isUscita:
@@ -1380,16 +1381,14 @@ class SpazioComportamentale:
 
             # Il nodo xn è finale se e solo se la sua chiusura ha una diagnosi non nulla
             # Nota: anche se ha una diagnosi con stringa vuota è finale
-            if not ni.chiusura.diagnosi:
-                xn.isFinale = True
-            else:
-                xn.isFinale = False
+            xn.isFinale = ni.chiusura.diagnosi is not None
 
+            # Associo alla chiusura del nodo xn la chiusura del suo nodo di ingresso
             xn.chiusura = ni.chiusura
 
             # Se il nodo generato ha una chiusura corrispondente al nodoIniziale dello sc,
             # il nodo generato è anche nodoIniziale di sCh
-            if ni == self.nodoIniziale:
+            if ni is self.nodoIniziale:
                 sCh.nodoIniziale = xn
 
             # Aggiungiamo il nuovo nodo xn a sCh
@@ -1405,16 +1404,16 @@ class SpazioComportamentale:
                 # Per ogni arco a1 osservabile uscente da nu
                 a1: Arco
                 for a1 in nu.archiUscenti:
-                    if not a1.osservabilita:
+                    if a1.osservabilita != "":
                         # cerchiamo nello spazio delle chiusure,
                         # il nodo y la cui chiusura ha nodo iniziale nodo1 di a1
                         y: Nodo
                         for y in sCh.nodi:
-                            if a1.nodo1 == y.chiusura.nodoIniziale:
+                            if a1.nodo1 is y.chiusura.nodoIniziale:
                                 # creiamo l'arco a2 dal nodo x corrente
                                 # al nodo y dello spazio delle chiusure
                                 a2 = Arco(nodo0=x, nodo1=y, transizione=a1.transizione,
-                                          rilevanza=a1.rilevanza + x.chiusura.decorazioni[id(nu)],
+                                          rilevanza=a1.rilevanza + x.chiusura.decorazioni.get(id(nu), ""),
                                           osservabilita=a1.osservabilita)
                                 a2.isPotato = False
                                 sCh.addArco(a2)
@@ -1445,10 +1444,10 @@ class Chiusura(SpazioComportamentale):
         self.decorazioni = {}
 
         self.diagnosi: str
-        self.diagnosi = ""
+        self.diagnosi = None
         super().__init__()
 
-    def esistonoPiuArchiStessoPedice(self, pedici: Dict[Arco, Nodo]) -> bool:
+    def esistonoPiuArchiStessoPedice(self, pedici: Dict[int, Nodo]) -> bool:
         """
         Data la chiusura in ingresso ed il dizionario dei pedici,
         ritorna True se esistono più archi marchiati dallo stesso pedice.
@@ -1456,8 +1455,9 @@ class Chiusura(SpazioComportamentale):
             - I pedici corrispondono ai nodi di accettazione
             - Un arco non nel dizionario dei pedici ha sicuramente pedice None
             - Un arco con pedice None non è nel dizionario
-            - Il tipo di pedici è Dict[Arco, Nodo], con Arco e Nodo appartenenti a chiusura
-        :param pedici: il dizionario dei pedici (tipo: Dict[Arco,Nodo])
+            - Il tipo di pedici è Dict[id(Arco), Nodo], con Arco e Nodo appartenenti a chiusura,
+              mentre Nodo è un nodo di accettazione per la chiusura
+        :param pedici: il dizionario dei pedici (tipo: Dict[int,Nodo], il primo int è un id di un Arco)
         :return: True se esistono più archi marchiati dallo stesso pedice, False altrimenti
         """
 
@@ -1486,11 +1486,11 @@ class Chiusura(SpazioComportamentale):
                     count[id(n)] = 0
                 pass
 
-            # Facciamo scorrere le chiavi del dizionario dei pedici per contare le occorrenze
+            # Facciamo scorrere i nodi di accettazione per contare le occorrenze
             for entry in pedici:
                 # Incremento il value del contatore relativo al pedice
-                count[entry] += 1
-                if count[entry] > 1:
+                count[id(pedici[entry])] += 1
+                if count[id(pedici[entry])] > 1:
                     return True
 
             # Se a fine ciclo non abbiamo mai tornato True,
@@ -1526,7 +1526,7 @@ class Chiusura(SpazioComportamentale):
                         pedice_b = pedici.get(id(b), None)
 
                         # Se la destinazione e il pedice di a e b sono gli stessi, compilo il parallelo
-                        if b.nodo1 == a.nodo1 and pedice_b == pedice_a:
+                        if b.nodo1 is a.nodo1 and pedice_b is pedice_a:
                             parallelo.append(b)
                     # Ho trovato degli archi paralleli, quindi li ritorno
                     return parallelo
@@ -1552,7 +1552,7 @@ class Chiusura(SpazioComportamentale):
         # - I pedici corrispondono ai nodi di accettazione
         # - Un arco non nel dizionario dei pedici ha sicuramente pedice None
         # - Un arco con pedice None non è nel dizionario
-        # - Il tipo di pedici è Dict[Arco, Nodo]
+        # - Il tipo di pedici è Dict[id(Arco), Nodo]
         #   con Arco e Nodo appartenenti a chiusura
         pedici: Dict[int, Nodo]
         pedici = {}
@@ -1562,12 +1562,19 @@ class Chiusura(SpazioComportamentale):
         # della chiusura corrente.
         scN = copy.deepcopy(self)
 
+        # Ripulisco il clone della chiusura dagli archi osservabili uscenti,
+        # che ancora sono nelle liste di adiacenza dei nodiUscita
+        for nu in scN.nodiUscita:
+            # cerchiamo archi osservabili nelle liste di archiUscenti e li rimuoviamo
+            nu.archiUscenti = [a for a in nu.archiUscenti if a.osservabilita == ""]
+
         # Creo un dizionario che associ i riferimenti
         # ai nodi della chiusura in input ai nodi della chiusura clonata
         nodiClone2Origin: Dict[int, Nodo]
         nodiClone2Origin = {}
         for i in range(1, len(self.nodi)):
-            # todo: verifica che l'ordine corrisponda dopo la clonazione
+            # l'uso di i sui nodi paralleli mantiene correttamente la corrispondenza dei nodi fra la chiusura
+            # e il suo clone perché le liste sono ordinate
             nodiClone2Origin[id(scN.nodi[i])] = self.nodi[i]
         # Questo ci servirà a fine esecuzione per tradurre le decorazioni
         # di scN nelle decorazioni della chiusura originale
@@ -1578,12 +1585,12 @@ class Chiusura(SpazioComportamentale):
         # Verifichiamo se nel nodo iniziale sono presenti archi entranti
         esisteTransizioneEntranteANodoIniziale = False
         for arco in scN.archi:
-            if arco.nodo1 == scN.nodoIniziale:
+            if arco.nodo1 is scN.nodoIniziale:
                 esisteTransizioneEntranteANodoIniziale = True
                 break
 
         # 1:
-        # Se abbiamo trovato un arco entrante nel nodo iniziale
+        # Se abbiamo trovato un arco entrante nel nodo iniziale (interno alla chiusura)
         # creiamo un nuovo nodo iniziale n0 ed un arco con
         # etichette nulle da n0 al nodo iniziale di scN
         if esisteTransizioneEntranteANodoIniziale:
@@ -1627,6 +1634,12 @@ class Chiusura(SpazioComportamentale):
         while len(scN.nodi) > 2 or scN.esistonoPiuArchiStessoPedice(pedici):
             # 12: Esiste una serie di archi tra due nodi?
             serie = scN.trovaSerieArchi()
+
+            # TODO: verifica che la serie abbia
+            #  - o nessun arco con pedice (serie_no_pedici)
+            #  - o pedice solo sull'ultimo arco (serie_ultimo_ha_pedice)
+            #  - se non si verifica nessuna delle due ipotesi, svuota la serie
+
             if serie:
                 # 13: Se l'ultimo nodo della serie non è nq
                 # e il penultimo non è di accettazione
@@ -1657,7 +1670,7 @@ class Chiusura(SpazioComportamentale):
                     # Fisso il pedice della nuova etichetta
                     # a quello dell'ultimo arco della serie
                     pedice = pedici[id(serie[-1])]
-                elif nodoFineSerie != nq and nodoPenultimoSerie not in scN.nodiAccettazione:
+                elif nodoFineSerie is not nq and nodoPenultimoSerie not in scN.nodiAccettazione:
                     # L'ultimo arco non ha pedice, righe 12-17
                     # Sostituire la serie con l'arco <nodoInizioSerie,strRilevanza,nodoFineSerie>
                     # Compilo la stringa di rilevanza r1...r_k
@@ -1670,7 +1683,7 @@ class Chiusura(SpazioComportamentale):
                     # Definisco la stringa di rilevanza r1...r_(k-1)
                     # con k-1 indice del penultimo arco nella serie
 
-                    # Consideriamo la serie meno il penultimo elemento
+                    # Consideriamo la serie meno il penultimo elemento # todo: perché il penultimo?
                     strRilevanza = SpazioComportamentale.componiStrRilevanzaSerie(serie[0:-1])
 
                     # Fisso il pedice al penultimo nodo della serie
@@ -1688,28 +1701,28 @@ class Chiusura(SpazioComportamentale):
                 # nel dizionario
                 for arco in serie:
                     arco.isPotato = True
-                    if arco.nodo1 != nodoFineSerie:
+                    if arco.nodo1 is not nodoFineSerie:
                         arco.nodo1.isPotato = True
 
                     # Eliminiamo dal dizionario dei pedici la voce corrispondente all'arco da potare
                     if id(arco) in pedici:
                         pedici.pop(id(arco))
+                # fine del for
+                # Elimino nodi e archi indicati come isPotato == True
+                scN.potatura()
 
-                    # Elimino nodi e archi indicati come isPotato == True
-                    scN.potatura()
+                # Creo il nuovo arco che sostituisce la serie potata
+                a = Arco(
+                    nodo0=nodoInizioSerie, nodo1=nodoFineSerie, transizione=None,
+                    rilevanza=strRilevanza, osservabilita="")
+                a.isPotato = False
 
-                    # Creo il nuovo arco che sostituisce la serie potata
-                    a = Arco(
-                        nodo0=nodoInizioSerie, nodo1=nodoFineSerie, transizione=None,
-                        rilevanza=strRilevanza, osservabilita="")
-                    a.isPotato = False
+                # Introduco il nuovo arco
+                scN.addArco(a)
 
-                    # Introduco il nuovo arco
-                    scN.addArco(a)
-
-                    # Fissiamo l'eventuale pedice del nuovo arco
-                    if pedice is not None:
-                        pedici[id(a)] = pedice
+                # Fissiamo l'eventuale pedice del nuovo arco
+                if pedice is not None:
+                    pedici[id(a)] = pedice
             else:
                 # La serie non c'è.
                 # Analisi del parallelo. Righe 20-23:
@@ -1762,18 +1775,26 @@ class Chiusura(SpazioComportamentale):
                     # Peschiamo un nodo intermedio, né iniziale né finale
                     nodoIntermedio = None
                     for nodo in scN.nodi:
-                        if nodo != n0 and nodo != nq:
+                        if nodo is not n0 and nodo is not nq:
                             nodoIntermedio = nodo
                             break
 
                     # Se tale nodo  intermedio esiste, studiamo i suoi cappi
                     if nodoIntermedio is not None:
+                        # Marchiamo il nodoIntermedio come da potare
+                        nodoIntermedio.isPotato = True
+                        # Tengo traccia di quali id di archi entranti e uscenti dal nodo intermedio
+                        # devo togliere dal dizionario
+                        idArchiDaRimuovereDaPedici = []
+
                         # Esiste un cappio su nodoIntermedio? Creo la sua stringa di rilevanza
                         # NOTA: Costruire la stringa qui ci consente di risparmiare cicli
                         strRilevanzaCappio = ""
                         nodoIntermedio: Nodo
                         for cappio in nodoIntermedio.archiUscenti:
-                            if cappio.nodo1 == nodoIntermedio:
+                            if cappio.nodo1 is nodoIntermedio:
+                                # segno come da rimuovere dai pedici il cappio su nodoIntermedio
+                                idArchiDaRimuovereDaPedici.append(id(cappio))
                                 if len(cappio.rilevanza) == 1:
                                     strRilevanzaCappio = cappio.rilevanza + "*"
                                 elif len(cappio.rilevanza) > 1:
@@ -1781,16 +1802,16 @@ class Chiusura(SpazioComportamentale):
                                 break
 
                         # todo: verifica che accade se ci sono più cappi sullo stesso nodo con pedice diverso
-                        # todo: può esistere un cappio dotato di pedice?
-
-                        # Marchiamo il nodoIntermedio come da potare
-                        nodoIntermedio.isPotato = True
 
                         # Ciclo sugli archi entranti a nodoIntermedio, eccetto i cappi
                         for arcoEntrante in scN.archi:
-                            if arcoEntrante.nodo1 == nodoIntermedio and arcoEntrante.nodo0 != nodoIntermedio:
+                            if arcoEntrante.nodo1 is nodoIntermedio and arcoEntrante.nodo0 is not nodoIntermedio:
+                                # segno come da rimuovere dai pedici l'arco entrante in nodoIntermedio non cappio
+                                idArchiDaRimuovereDaPedici.append(id(arcoEntrante))
                                 for arcoUscente in nodoIntermedio.archiUscenti:
-                                    if arcoUscente.nodo1 != nodoIntermedio:
+                                    if arcoUscente.nodo1 is not nodoIntermedio:
+                                        # segno come da rimuovere dai pedici l'arco uscente da nodoIntermedio non cappio
+                                        idArchiDaRimuovereDaPedici.append(id(arcoUscente))
                                         # Costruisco la stringa di rilevanza tenendo conto dell'eventuale cappio
                                         strRilevanzaFinale = arcoEntrante.rilevanza \
                                                              + strRilevanzaCappio \
@@ -1811,7 +1832,7 @@ class Chiusura(SpazioComportamentale):
                                         if id(arcoUscente) in pedici:
                                             # Righe 40-46: il pedice dell'arco uscente non è NIL
                                             pedice = pedici[id(arcoUscente)]
-                                        elif arcoUscente.nodo1 == nq and arcoUscente.nodo0 in scN.nodiAccettazione:
+                                        elif arcoUscente.nodo1 is nq and arcoUscente.nodo0 in scN.nodiAccettazione:
                                             # Righe 28-39:
                                             pedice = arcoUscente.nodo0
 
@@ -1825,7 +1846,12 @@ class Chiusura(SpazioComportamentale):
                         # Fine for ricerca primo arco (non cappio)
                         # Ora posso rimuovere nodoIntermedio e tutti i suoi archi entranti e uscenti
                         scN.potatura()
-                    # Fine if nodoIntermedio != None
+                        # Rimuovo anche tutti gli archi potati dal dizionario dei pedici
+                        for i in idArchiDaRimuovereDaPedici:
+                            if i in pedici: # si potrebbe risparmiare qualche ciclo qui eliminando i duplicati da idArchiDaRimuovereDaPedici
+                                pedici.pop(i)
+
+                    # Fine if nodoIntermedio is not None
                 # Fine controllo su parallelo/nodo intermedio
             # fine controllo serie
         # fine while principale
@@ -1839,7 +1865,7 @@ class Chiusura(SpazioComportamentale):
                 # Traduco il riferimento al nodo che è il pedice dell'arco, in modo da avere il nodo (pedice)
                 # corrispondente nella chiusura di partenza.
                 # Alla decorazione di tale nodo, per questa chiusura, associo la rilevanza dell'arco decorato
-                self.decorazioni[id(nodiClone2Origin[pedice_arco])] = arco.rilevanza
+                self.decorazioni[id(nodiClone2Origin[id(pedice_arco)])] = arco.rilevanza
 
         # Calcoliamo anche la diagnosi della chiusura come
         # l'alternativa delle decorazioni relative agli stati finali della chiusura
@@ -1859,9 +1885,10 @@ class Chiusura(SpazioComportamentale):
                         and (self.decorazioni[id(n)] != "" or (self.decorazioni[id(n)] == "" and not hasEps)):
                     strDiagnosi += "|"
 
-                # todo: se una chiusura contiene un solo nodo finale e nessun arco, vogliamo che tale nodo
-                #  abbia comunque la sua decorazione anche se nulla! In tal caso vogliamo che sia "" o eps
-                if self.decorazioni[id(n)] == "":
+                # Se una chiusura contiene un solo nodo finale e nessun arco, vogliamo che tale nodo
+                # abbia comunque la sua decorazione anche se pari a ""
+                deco = self.decorazioni.get(id(n))
+                if deco is None or deco == "ε" or deco == "":
                     # Caso: ho incontrato una rilevanza vuota: metto ε sse non c'è già un ε nell'alternativa
                     if not hasEps:
                         strDiagnosi += "ε"
@@ -1880,17 +1907,10 @@ class Chiusura(SpazioComportamentale):
 
 # if __name__ == '__compito 4__':
 if __name__ == '__main__':
-    a = Nodo()
-    a.nome = "A"
-    b = Nodo()
-    b.nome = "B"
-
-    print(f"{a==b}")
 
     # Test compito 4
     xmlPath = 'inputs/input.xml'
     rete = ReteFA.fromXML(xmlPath)
-    ol = ["o3", "o2"]
 
     sc = SpazioComportamentale()
     sc.creaSpazioComportamentale(rete)
@@ -1898,6 +1918,7 @@ if __name__ == '__main__':
 
     diagnosticatore = sc.generaDiagnosticatore()
 
+    print(f"fine")
 if __name__ == '__compito 3__':
     # Test compito 3
     xmlPath = 'inputs/input.xml'
