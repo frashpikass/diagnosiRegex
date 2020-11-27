@@ -811,6 +811,8 @@ class SpazioComportamentale:
             # # todo: controlla che faccia bene il confronto fra i buffer!
             # if set(nodo.contenutoLink) != set(nodoCorr.contenutoLink):
             #     continue
+            ## NOTA: questo codice serve per riparare l'== in caso in cui ci venga in mente che il confronto per valore
+            ## non ci piace più
 
             # Se abbiamo trovato il nodo corrispondente a quello in input
             # lo ritorniamo
@@ -1635,12 +1637,27 @@ class Chiusura(SpazioComportamentale):
             # 12: Esiste una serie di archi tra due nodi?
             serie = scN.trovaSerieArchi()
 
-            # TODO: verifica che la serie abbia
-            #  - o nessun arco con pedice (serie_no_pedici)
-            #  - o pedice solo sull'ultimo arco (serie_ultimo_ha_pedice)
-            #  - se non si verifica nessuna delle due ipotesi, svuota la serie
-
+            # Verifico se la serie non ha pedici
+            serie_no_pedici = True
+            # E verifico se la serie ha pedice solo sull'ultimo arco
+            serie_solo_ultimo_ha_pedice = True
             if serie:
+                for a in serie[:-1]:
+                    if id(a) in pedici:
+                        serie_no_pedici = False
+                        serie_solo_ultimo_ha_pedice = False
+                        break
+                if serie_no_pedici:
+                    # Controllo l'ultimo elemento
+                    if id(serie[-1]) in pedici:
+                        serie_no_pedici = False
+                        serie_solo_ultimo_ha_pedice = True
+                    else:
+                        serie_no_pedici = True
+                        serie_solo_ultimo_ha_pedice = False
+
+            # if principale per il controllo della serie
+            if serie and (serie_no_pedici or serie_solo_ultimo_ha_pedice):
                 # 13: Se l'ultimo nodo della serie non è nq
                 # e il penultimo non è di accettazione
                 # e l'ultimo arco della serie non ha pedice...
@@ -1651,16 +1668,12 @@ class Chiusura(SpazioComportamentale):
                 nodoPenultimoSerie = serie[-1].nodo0
                 nodoFineSerie = serie[-1].nodo1
 
-                # Verifico se l'ultimo arco della serie ha il pedice
-                ultimoArcoHaPedice = id(serie[-1]) in pedici
-
                 # Tengo traccia del pedice con cui etichettare la stringa
                 pedice = None
 
                 # Definisco la stringa di rilevanza (e eventualmente il suo pedice)
                 strRilevanza = ""
-                # todo: ricontrolla bene perché potrebbe essere semplificabile
-                if ultimoArcoHaPedice:
+                if serie_solo_ultimo_ha_pedice:
                     # L'ultimo arco ha pedice, righe 18-19
                     # Sostituire la serie con l'arco
                     # <nodoInizioSerie,strRilevanza(con pedice dell'ultimo arco della serie),nodoFineSerie>
@@ -1683,7 +1696,7 @@ class Chiusura(SpazioComportamentale):
                     # Definisco la stringa di rilevanza r1...r_(k-1)
                     # con k-1 indice del penultimo arco nella serie
 
-                    # Consideriamo la serie meno il penultimo elemento # todo: perché il penultimo?
+                    # 16: Consideriamo la serie meno il penultimo elemento
                     strRilevanza = SpazioComportamentale.componiStrRilevanzaSerie(serie[0:-1])
 
                     # Fisso il pedice al penultimo nodo della serie
@@ -1717,7 +1730,7 @@ class Chiusura(SpazioComportamentale):
                     rilevanza=strRilevanza, osservabilita="")
                 a.isPotato = False
 
-                # Introduco il nuovo arco
+                # Introduco il nuovo arco (anche nelle liste di adiacenza)
                 scN.addArco(a)
 
                 # Fissiamo l'eventuale pedice del nuovo arco
@@ -1742,7 +1755,6 @@ class Chiusura(SpazioComportamentale):
                     # Introduco il nuovo arco
                     scN.addArco(a)
                     # Fissiamo l'eventuale pedice del nuovo arco
-                    # todo: occhio che stiamo cercando di accedere a un pedice che abbiamo rimosso
                     if id(parallelo[0]) in pedici:
                         pedici[id(a)] = pedici[id(parallelo[0])]
 
@@ -1801,7 +1813,7 @@ class Chiusura(SpazioComportamentale):
                                     strRilevanzaCappio = f"({cappio.rilevanza})*"
                                 break
 
-                        # todo: verifica che accade se ci sono più cappi sullo stesso nodo con pedice diverso
+                        # todo: verifica che accade se ci sono più cappi sullo stesso nodo con pedice diverso (tipo benchmark)
 
                         # Ciclo sugli archi entranti a nodoIntermedio, eccetto i cappi
                         for arcoEntrante in scN.archi:
