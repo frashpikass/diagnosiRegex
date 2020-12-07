@@ -2,10 +2,8 @@
 File di descrizione degli elementi della struttura dati in input.
 """
 from typing import List, Dict
-# import matplotlib.pyplot as plt
 import xmlschema
 import copy
-# import networkx as nx
 import xml.etree as ET
 
 
@@ -638,11 +636,6 @@ class SpazioComportamentale:
                         self.addArco(Arco(nodoCorr, rif, trans, trans.rilevanza, trans.osservabilita))
 
             # Recuperiamo il nuovo nodo corrente da studiare, se ci sono nodi correnti
-            # try:
-            #     nodoCorr = nodiDaEsplorare.pop()
-            # except IndexError:
-            #     # Altrimenti, non c'è nessun nodo corrente
-            #     nodoCorr = None
             if nodiDaEsplorare:
                 nodoCorr = nodiDaEsplorare.pop()
             else:
@@ -729,12 +722,6 @@ class SpazioComportamentale:
                             # Aggiungo sempre l'arco legato alla transizione fattibile
                             self.addArco(Arco(nodoCorr, rif, trans, trans.rilevanza, trans.osservabilita))
 
-            # Recuperiamo il nuovo nodo corrente da studiare, se ci sono nodi correnti
-            # try:
-            #     nodoCorr = nodiDaEsplorare.pop()
-            # except IndexError:
-            #     # Altrimenti, non c'è nessun nodo corrente
-            #     nodoCorr = None
             if nodiDaEsplorare:
                 nodoCorr = nodiDaEsplorare.pop()
             else:
@@ -1151,19 +1138,7 @@ class SpazioComportamentale:
                     hasEps = False
                     t: Arco
                     for t in parallelo:
-                        if strRilevanza != "":
-                            strRilevanza += "|"
-
-                        if t.rilevanza == "" \
-                                and (t.rilevanza != "" or (t.rilevanza == "" and not hasEps)):
-                            # Caso: ho incontrato una rilevanza vuota: metto ε sse non c'è già un ε nell'alternativa
-                            if not hasEps:
-                                strRilevanza += "ε"
-                                hasEps = True
-                        else:
-                            # Caso: rilevanza non nulla, accodo dopo il |
-                            strRilevanza += t.rilevanza
-
+                        (strRilevanza, hasEps) = SpazioComportamentale.alternativaRilevanza(strRilevanza, t.rilevanza, hasEps)
                         t.isPotato = True
 
                     # Potiamo solo gli archi segnati come isPotato (i nodi restano inalterati)
@@ -1293,6 +1268,104 @@ class SpazioComportamentale:
         nodoIngresso.chiusura.espressioniRegolari()
 
     @staticmethod
+    def isConcatenazione(s: str) -> bool:
+        """
+        Ritorna True se la stringa in ingresso rappresenta una concatenazione
+        :param s: la stringa da valutare
+        :return: True se la stringa in ingresso rappresenta una concatenazione
+        """
+        # Contatore parentesi
+        par = 0
+        for c in s:
+            if c == "|" and par == 0:
+                return False
+            elif c == "(":
+                par += 1
+            elif c == ")":
+                par -= 1
+        return True
+
+    @staticmethod
+    def concatenaRilevanza(base: str, aggiunta: str):
+        """
+        Data una stringa base e una stringa di aggiunta, le concatena secondo la regola di concatenazione delle expreg.
+        :param base: la stringa base
+        :param aggiunta: la stringa da aggiungere
+        :return: la concatenazione delle due stringhe
+        """
+        ret = ""
+        if len(base) > 1 and not SpazioComportamentale.isConcatenazione(base):
+            ret += f"({base})"
+        else:
+            ret += base
+
+        if len(aggiunta) > 1 and not SpazioComportamentale.isConcatenazione(aggiunta):
+            ret += f"({aggiunta})"
+        else:
+            ret += aggiunta
+
+        return ret
+
+    @staticmethod
+    def alternativaRilevanza(base: str, aggiunta: str, hasEps = None) -> (str, bool):
+        """
+        Data una stringa base e una stringa di aggiunta, compone l'alternativa delle due stringhe
+        :param base: la stringa base
+        :param aggiunta: la stringa di aggiunta
+        :param hasEps: True se base contiene già l'alternativa epsilon
+        :return: la coppia (base, hasEps) aggiornate, con base come alternativa di base e aggiunta
+        """
+        if hasEps is None:
+            # Verifica se base contiene epsilon
+            if base == "":
+                hasEps = False
+            elif SpazioComportamentale.isConcatenazione(base):
+                hasEps = False
+            else:
+                # Contatore parentesi
+                par = 0
+                # buffer da analizzare (una alternativa)
+                buffer = ""
+                hasEps = False
+                for c in base:
+                    if c == "|" and par == 0:
+                        # studiamo il buffer
+                        if buffer == "ε":
+                            hasEps = True
+                            break
+                        # resettiamo il buffer
+                        buffer = ""
+                    elif c == "(":
+                        par += 1
+                        buffer += c
+                    elif c == ")":
+                        par -= 1
+                        buffer += c
+                    else:
+                        buffer += c
+            # base = "aasasasa"
+            # base = ""
+            # base = "a|b|c"
+            # base = "a|b|c|ε"
+            # base = "a|(bc|d|ε)b|c"
+            # base = "a|(bc|d|ε)|c"
+
+        if base != "" and (aggiunta != "" or (aggiunta == "" and not hasEps)):
+            base += "|"
+
+        if aggiunta == "":
+            # Caso: ho incontrato una rilevanza vuota: metto ε sse non c'è già un ε nell'alternativa
+            if not hasEps:
+                base += "ε"
+                hasEps = True
+        else:
+            # Caso: rilevanza non nulla, accodo dopo il |
+            base += aggiunta
+
+        return base, hasEps
+
+
+    @staticmethod
     def componiStrRilevanzaSerie(serie: List[Arco]) -> str:
         """
         A partire dalla serie in ingresso (una lista di Arco) considerata
@@ -1302,12 +1375,7 @@ class SpazioComportamentale:
         """
         strRilevanza = ""
         for t in serie:
-            if len(t.rilevanza) > 1:
-                # se la stringa di rilevanza precedentemente inserita non è una concatenazione,
-                # metto le parentesi
-                strRilevanza += f"({t.rilevanza})"
-            elif len(t.rilevanza) == 1:
-                strRilevanza += t.rilevanza
+            strRilevanza = SpazioComportamentale.concatenaRilevanza(strRilevanza, t.rilevanza)
         return strRilevanza
 
     @staticmethod
@@ -1321,17 +1389,7 @@ class SpazioComportamentale:
         strRilevanza = ""
         hasEps = False
         for t in parallelo:
-            if strRilevanza != "" and (t.rilevanza != "" or (t.rilevanza == "" and not hasEps)):
-                strRilevanza += "|"
-
-            if t.rilevanza == "":
-                # Caso: ho incontrato una rilevanza vuota: metto ε sse non c'è già un ε nell'alternativa
-                if not hasEps:
-                    strRilevanza += "ε"
-                    hasEps = True
-            else:
-                # Caso: rilevanza non nulla, accodo dopo il |
-                strRilevanza += t.rilevanza
+            (strRilevanza, hasEps) = SpazioComportamentale.alternativaRilevanza(strRilevanza, t.rilevanza, hasEps)
 
     def generaDiagnosticatore(self):
         """
@@ -1343,10 +1401,10 @@ class SpazioComportamentale:
               osservabilità e come rilevanza la concatenazione della sua rilevanza e la decorazione del nodo di uscita
               della chiusura.
 
-        :return: lo spazio comportamentale che rappresenta il diagnosticatore
+        :return: il Diagnosticatore corrispondente a questo spazio comportamentale
         """
-        # Costruiamo lo spazio delle chiusure sCh
-        sCh = SpazioComportamentale()
+        # Costruiamo il diagnosticatore d
+        d = Diagnosticatore()
 
         # Trova tutti i possibili nodi di ingresso delle chiusure
         # Un nodo d'ingresso della chiusura è
@@ -1372,11 +1430,11 @@ class SpazioComportamentale:
         # fine ciclo sui nodi di sc
 
         # Per ogni nodo di ingresso genera la chiusura e il nodo corrispondente
-        # dello sCh (spazio chiusure)
+        # dello d (spazio chiusure)
         ni: Nodo
         for ni in nodiIngresso:
             self.generaChiusuraSilenziosaDecorata(ni)
-            # Genero un nuovo nodo xn in sCh corrispondente alla chiusura
+            # Genero un nuovo nodo xn in d corrispondente alla chiusura
             xn = Nodo()
             xn.nome = 'x' + ni.nome
             xn.isPotato = False
@@ -1389,17 +1447,17 @@ class SpazioComportamentale:
             xn.chiusura = ni.chiusura
 
             # Se il nodo generato ha una chiusura corrispondente al nodoIniziale dello sc,
-            # il nodo generato è anche nodoIniziale di sCh
+            # il nodo generato è anche nodoIniziale di d
             if ni is self.nodoIniziale:
-                sCh.nodoIniziale = xn
+                d.nodoIniziale = xn
 
-            # Aggiungiamo il nuovo nodo xn a sCh
-            sCh.addNodo(xn)
+            # Aggiungiamo il nuovo nodo xn a d
+            d.addNodo(xn)
 
-        # Genera gli archi tra i nodi di sCh
+        # Genera gli archi tra i nodi di d
         # Per ogni nodo x dello spazio delle chiusure
         x: Nodo
-        for x in sCh.nodi:
+        for x in d.nodi:
             # Per ogni nodo di uscita della chiusura di x
             nu: Nodo
             for nu in x.chiusura.nodiUscita:
@@ -1410,7 +1468,7 @@ class SpazioComportamentale:
                         # cerchiamo nello spazio delle chiusure,
                         # il nodo y la cui chiusura ha nodo iniziale nodo1 di a1
                         y: Nodo
-                        for y in sCh.nodi:
+                        for y in d.nodi:
                             if a1.nodo1 is y.chiusura.nodoIniziale:
                                 # creiamo l'arco a2 dal nodo x corrente
                                 # al nodo y dello spazio delle chiusure
@@ -1418,20 +1476,10 @@ class SpazioComportamentale:
                                           rilevanza=a1.rilevanza + x.chiusura.decorazioni.get(id(nu), ""),
                                           osservabilita=a1.osservabilita)
                                 a2.isPotato = False
-                                sCh.addArco(a2)
+                                d.addArco(a2)
 
         # Ritorna lo spazio delle chiusure generato, che ormai è un diagnosticatore
-        return sCh
-
-    # def draw(self):
-    #     G = nx.MultiDiGraph()
-    #
-    #     # Aggiunta nodi
-    #     G.add_nodes_from(self.nodi)
-    #
-    #     # Costruzione edge
-    #     for arco in self.archi:
-    #         G.add_edge(arco.nodo0, arco.nodo1)
+        return d
 
 
 class Chiusura(SpazioComportamentale):
@@ -1889,25 +1937,9 @@ class Chiusura(SpazioComportamentale):
             hasEps = False
 
             for n in nodiFinali:
-                # Metto un pipe solo se
-                # ho già del testo nella diagnosi
-                #   e devo aggiungere una stringa non nulla
-                #   oppure devo aggiungere una stringa nulla, ma non ho ancora messo un epsilon
-                if strDiagnosi != "" \
-                        and (self.decorazioni[id(n)] != "" or (self.decorazioni[id(n)] == "" and not hasEps)):
-                    strDiagnosi += "|"
+                (strDiagnosi, hasEps) = \
+                    SpazioComportamentale.alternativaRilevanza(strDiagnosi, self.decorazioni.get(id(n), ""), hasEps)
 
-                # Se una chiusura contiene un solo nodo finale e nessun arco, vogliamo che tale nodo
-                # abbia comunque la sua decorazione anche se pari a ""
-                deco = self.decorazioni.get(id(n))
-                if deco is None or deco == "ε" or deco == "":
-                    # Caso: ho incontrato una rilevanza vuota: metto ε sse non c'è già un ε nell'alternativa
-                    if not hasEps:
-                        strDiagnosi += "ε"
-                        hasEps = True
-                else:
-                    # Caso: decorazione non nulla, accodo dopo il |
-                    strDiagnosi += self.decorazioni[id(n)]
             # Trascrivo la diagnosi nella chiusura
             self.diagnosi = strDiagnosi
         else:
@@ -1915,10 +1947,100 @@ class Chiusura(SpazioComportamentale):
             self.diagnosi = None
 
 
+class Diagnosticatore(SpazioComportamentale):
+    """
+    Un diagnosticatore è uno SpazioComportamentale delle chiusure ai cui nodi è associata la
+    Chiusura silenziosa decorata, a ciascun nodo finale è associata una diagnosi,
+    ogni Arco è dotato di etichetta di osservabilità e di espressione regolare di rilevanza.
+    """
+    def __init__(self):
+        super().__init__()
+
+    def diagnosiLineare(self, ol: List[str]) -> str:
+        """
+        Calcola la diagnosi relativa ad un'osservazione lineare sfruttando questo diagnosticatore.
+        Riceve in ingresso un'osservazione lineare ol, ovvero una lista di osservazioni.
+        L'uscita è un'espressione regolare di rilevanza, ovvero una stringa.
+        :param ol: la lista di stringhe di osservazione lineare su questo diagnosticatore
+        :return: la diagnosi lineare relativa ad ol
+        """
+        # coppie è un dizionario che associa all'id di un nodo del diagnosticatore
+        # un'espressione regolare corrispondente.
+        # Viene già popolato con la coppia iniziale
+        coppie = {id(self.nodoIniziale): (self.nodoIniziale, "")}
+
+        # Ciclo sulla osservazione lineare
+        for o in ol:
+            # ricostruisco le coppie
+            coppie_n = {}
+            for k_o, (x1, r1) in coppie.items():
+                for arco in x1.archiUscenti:
+                    if arco.osservabilita == o:
+                        # 6: Concatenazione delle etichette lungo la traiettoria
+                        r2 = Diagnosticatore.concatenaRilevanza(r1, arco.rilevanza)
+                        # 7: Se trova il nodo di destinazione dell'arco come chiave
+                        # nelle nuove coppie, aggiorna la rilevanza di tale nodo
+                        # oppure inserisce la coppia nodo dest, rilevanza
+                        if id(arco.nodo1) in coppie_n:
+                            coppie_n[id(arco.nodo1)] = (arco.nodo1, Diagnosticatore.alternativaRilevanza(coppie_n[id(arco.nodo1)][1], r2)[0])
+                        else:
+                            coppie_n[id(arco.nodo1)] = (arco.nodo1, r2)
+                        # end if
+                    # end if
+                # end for, fine ciclo su archi uscenti da x1
+            # fine ciclo sulle coppie
+            # aggiornamento coppie
+            coppie = coppie_n
+        # fine ciclo sulle osservazioni
+
+        # 16: rimozione coppie dove x non è di accettazione (dunque isFinale)
+        coppie = {k:(nodo, rilevanza) for k,(nodo, rilevanza) in coppie.items() if nodo.isFinale}
+
+        # 17: se resta una sola coppia...
+        ret = ""
+        if len(coppie) == 1:
+            # accediamo all'ultima (unica) coppia con un abuso di notazione
+            # concateniamo la sua rilevanza alla diagnosi del suo nodo
+            k, (x, r) = coppie.popitem()
+            ret = Diagnosticatore.concatenaRilevanza(r, x.chiusura.diagnosi)
+        else:
+            # ci sono più coppie
+            # la stringa da ritornare è l'alternativa delle concatenazioni
+            # fra le stringhe di rilevanza delle coppie e le diagnosi del
+            # nodo corrispondente
+            # todo: crea esempio che finisca in questo caso
+            hasEps = False
+            for k_o, (x, r) in coppie.items():
+                (ret, hasEps) = Diagnosticatore.alternativaRilevanza(ret, Diagnosticatore.concatenaRilevanza(r, x.chiusura.diagnosi), hasEps)
+
+        # Ritorna la diagnosi lineare
+        return ret
+
+
+
+
+
+
 ## MAIN ##
 
-# if __name__ == '__compito 4__':
 if __name__ == '__main__':
+    # ol = ["o3", "o2", "o3", "o2"]
+    ol = ["o3", "o2"]
+    # Test compito 5
+    xmlPath = 'inputs/input.xml'
+    rete = ReteFA.fromXML(xmlPath)
+
+    sc = SpazioComportamentale()
+    sc.creaSpazioComportamentale(rete)
+    sc.potaturaRidenominazione()
+
+    diagnosticatore = sc.generaDiagnosticatore()
+
+    diagnosi = diagnosticatore.diagnosiLineare(ol)
+
+    print(f"Diagnosi lineare per ol {ol}: {diagnosi}")
+
+if __name__ == '__compito 4__':
 
     # Test compito 4
     xmlPath = 'inputs/input.xml'
@@ -1931,6 +2053,7 @@ if __name__ == '__main__':
     diagnosticatore = sc.generaDiagnosticatore()
 
     print(f"fine")
+
 if __name__ == '__compito 3__':
     # Test compito 3
     xmlPath = 'inputs/input.xml'
