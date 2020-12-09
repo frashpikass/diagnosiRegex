@@ -5,6 +5,9 @@ from typing import List, Dict
 import xmlschema
 import copy
 import xml.etree as ET
+import argparse
+from pickle import dumps, loads
+from base64 import b64encode, b64decode
 
 
 ## CLASSI ##
@@ -184,7 +187,7 @@ class ReteFA:
             8- compilazione delle transizioni uscenti
         """
 
-        import xml.etree as ET
+        # import xml.etree as ET
 
         # Validazione dell'XML
         if ReteFA.validateXML(xmlPath):
