@@ -1,6 +1,7 @@
 """
 File di descrizione degli elementi della struttura dati in input.
 """
+from functools import singledispatchmethod, singledispatch
 from typing import List, Dict
 import xmlschema
 import copy
@@ -2026,7 +2027,137 @@ class Diagnosticatore(SpazioComportamentale):
 
 ## MAIN ##
 
+class Main():
+    @staticmethod
+    def compito1(reteFA_xml_path: str, output_path: str) -> (ReteFA, SpazioComportamentale):
+        """
+        Genera gli oggetti ReteFA e SpazioComportamentale a partire da una descrizione della rete FA come file XML
+        ben formattato.
+        Inoltre salva su disco il file di output corrispondente nella posizione specificata in output_path (o in
+        alternativa nella stessa cartella dell'input).
+
+        :param reteFA_xml_path: il percorso su disco al file XML che descrive la ReteFa
+        :param output_path: il percorso su disco dove salvare il file XML che descrive l'output di Compito1
+        :return: la coppia ReteFA, SpazioComportamentale
+        """
+        rete = ReteFA.fromXML(reteFA_xml_path)
+        sc = SpazioComportamentale()
+        sc.creaSpazioComportamentale(rete)
+        sc.potaturaRidenominazione()
+
+        return rete, sc
+
+    @singledispatchmethod
+    @staticmethod
+    def compito2(reteFA, osservazioneLineare: List[str], output_path: str) -> (ReteFA, SpazioComportamentale):
+        """
+        Genera gli oggetti ReteFA e SpazioComportamentale relativo all'osservazione lineare data, a partire da una
+        descrizione della rete FA come file XML ben formattato e un'osservazione lineare valida sulla rete FA.
+        Inoltre salva su disco il file di output corrispondente nella posizione specificata in output_path (o in
+        alternativa nella stessa cartella dell'input).
+
+        :param reteFA: il percorso su disco al file XML che descrive la ReteFa
+        :param osservazioneLineare: una lista ordinata di stringhe dove ogni stringa rappresenta un'osservazione su reteFA
+        :param output_path: il percorso su disco dove salvare il file XML che descrive l'output di Compito 2
+        :return: la coppia ReteFA, SpazioComportamentale
+        :raises NotImplementedError: se il reteFA in input non è una ReteFA o il path a un file XML di reteFA
+        """
+        raise NotImplementedError("Il tipo di reteFA in input alla funzione compito2 non è valido.")
+
+    @compito2.register(str)
+    @staticmethod
+    def _(reteFA: str, osservazioneLineare: List[str], output_path: str) -> (ReteFA, SpazioComportamentale):
+        rete = ReteFA.fromXML(reteFA)
+        scol = SpazioComportamentale()
+        scol.creaSpazioComportamentaleOsservazioneLineare(rete, osservazioneLineare)
+        scol.potaturaRidenominazione()
+
+        return rete, scol
+
+    @compito2.register(ReteFA)
+    @staticmethod
+    def _(reteFA: ReteFA, osservazioneLineare: List[str], output_path: str) -> (ReteFA, SpazioComportamentale):
+        scol = SpazioComportamentale()
+        scol.creaSpazioComportamentaleOsservazioneLineare(reteFA, osservazioneLineare)
+        scol.potaturaRidenominazione()
+
+        return reteFA, scol
+
+    @staticmethod
+    def compito3(scol: SpazioComportamentale, output_path: str) -> str:
+        """
+        Genera la diagnosi a partire dallo SpazioComportamentale relativo all'osservazione lineare (come generato da compito2).
+        Inoltre salva su disco il file di output corrispondente nella posizione specificata in output_path (o in
+        alternativa nella stessa cartella dell'input).
+
+        :param scol: lo SpazioComportamentale relativo all'osservazione lineare generato da Compito 2
+        :param output_path: il percorso su disco dove salvare il file XML che descrive l'output di Compito 3
+        :return: la stringa di diagnosi relativa all'osservazione lineare data sulla ReteFA
+        """
+        diagnosi = scol.espressioneRegolare()
+        return diagnosi
+
+    @staticmethod
+    def compito4(spazio: SpazioComportamentale, output_path: str) -> Diagnosticatore:
+        """
+        Genera il diagnosticatore a partire dallo SpazioComportamentale (come generato da compito1).
+        Inoltre salva su disco il file di output corrispondente nella posizione specificata in output_path (o in
+        alternativa nella stessa cartella dell'input).
+
+        :param spazio: lo SpazioComportamentale generato da Compito 1
+        :param output_path: il percorso su disco dove salvare il file XML che descrive l'output di Compito 4
+        :return: il Diagnosticatore corrispondente
+        """
+        diagnosticatore = spazio.generaDiagnosticatore()
+        return diagnosticatore
+
+    @staticmethod
+    def compito5(diag: Diagnosticatore, osservazioneLineare: List[str], output_path: str) -> str:
+        """
+        Genera la diagnosi relativa all'osservazione lineare a partire dal Diagnosticatore (come generato da compito 4)
+        e ad una osservazione lineare.
+        Inoltre salva su disco il file di output corrispondente nella posizione specificata in output_path (o in
+        alternativa nella stessa cartella dell'input).
+
+        :param diag: il Diagnosticatore di una ReteFA
+        :param osservazioneLineare: una lista ordinata di stringhe dove ogni stringa rappresenta un'osservazione su reteFA
+        :param output_path: il percorso su disco dove salvare il file XML che descrive l'output di Compito 4
+        :return: la stringa di diagnosi relativa all'osservazione lineare data sulla ReteFA
+        """
+        diagnosi = diag.diagnosiLineare(osservazioneLineare)
+        return diagnosi
+
+
 if __name__ == '__main__':
+    xmlPath = 'inputs/input.xml'
+    ol = ["o3", "o2", "o3", "o2"]
+
+    r1, s1 = Main.compito1(xmlPath, "")
+
+    scol = None
+    # try:
+    r2a, scol2a = Main.compito2(xmlPath, ol, "")
+    r2b, scol2b = Main.compito2(r1, ol, "")
+    scol = scol2a if scol2a else scol2b if scol2b else None
+    # Main.compito2(None, ol, "")
+
+    # except Exception as e:
+    #     print(f"Ho intercettato un eccezione in Compito 2: {e}")
+
+    d3 = Main.compito3(scol, "")
+
+    diagnosticatore4 = Main.compito4(s1, "")
+
+    d5 = Main.compito5(diagnosticatore4, ol)
+
+    print(f"Diagnosi ottenute:\nDa compito 3: {d3}\nDa compito 5: {d5}")
+
+
+
+
+
+
+if __name__ == '__compito 5__':
     # ol = ["o3", "o2", "o3", "o2"]
     ol = ["o3", "o2"]
     # Test compito 5
