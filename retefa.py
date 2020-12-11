@@ -2127,8 +2127,73 @@ class Main():
         diagnosi = diag.diagnosiLineare(osservazioneLineare)
         return diagnosi
 
-
 if __name__ == '__main__':
+
+    parser = argparse.ArgumentParser(description='Expr Reg')
+    parser.add_argument("compito", type=int, help="Numero del Compito da eseguire", choices=[1, 2, 3, 4, 5])
+    parser.add_argument("-r", "--reteFA", help="file di input contenente la Rete FA")
+    parser.add_argument("-o", "--ol", help="Osservazione Lineare")
+
+    args=parser.parse_args()
+    print(args.ol, args.reteFA)
+
+    if args.compito == 1:
+        # controllo validità input
+        if args.reteFA is not None:
+            r1, s1 = Main.compito1(args.reteFA, "")
+        else:
+            print('rete FA non inserita')
+        print('fine1')
+    elif args.compito == 2:
+        # controllo validità input
+        if args.reteFA is not None:
+            if args.ol is not None:
+                ol = args.ol.strip(']["').split(',')
+                r2a, scol = Main.compito2(args.reteFA, ol, "")
+            else:
+                print('Osservazione Lineare non inserita')
+        else:
+            print('rete FA non inserita')
+        print('fine2')
+
+    elif args.compito == 3:
+        # controllo validità input
+        if args.reteFA is not None:
+            if args.ol is not None:
+                ol = args.ol.strip(']["').split(',')
+                r2a, scol = Main.compito2(args.reteFA, ol, "")
+                d3 = Main.compito3(scol, "")
+            else:
+                print('Osservazione Lineare non inserita')
+        else:
+            print('rete FA non inserita')
+        print('fine3')
+        print(d3)
+    elif args.compito == 4:
+        # controllo validità input
+        if args.reteFA is not None:
+            r1, s1 = Main.compito1(args.reteFA, "")
+            diagnosticatore4 = Main.compito4(s1, "")
+        else:
+            print('rete FA non inserita')
+        print('fine4')
+
+    elif args.compito == 5:
+        # controllo validità input
+        if args.reteFA is not None:
+            if args.ol is not None:
+                ol = args.ol.strip(']["').split(',')
+                r1, s1 = Main.compito1(args.reteFA, "")
+                diagnosticatore4 = Main.compito4(s1, "")
+                d5 = Main.compito5(diagnosticatore4, ol, "")
+        else:
+            print('rete FA non inserita')
+        print(d5)
+        print('fine5')
+
+
+
+if __name__ == '__mainF__':
     xmlPath = 'inputs/input.xml'
     ol = ["o3", "o2", "o3", "o2"]
 
@@ -2151,10 +2216,6 @@ if __name__ == '__main__':
     d5 = Main.compito5(diagnosticatore4, ol)
 
     print(f"Diagnosi ottenute:\nDa compito 3: {d3}\nDa compito 5: {d5}")
-
-
-
-
 
 
 if __name__ == '__compito 5__':
@@ -2188,7 +2249,7 @@ if __name__ == '__compito 4__':
 
     print(f"fine")
 
-if __name__ == '__compito 3__':
+if __name__ == '__compito3__':
     # Test compito 3
     xmlPath = 'inputs/input.xml'
     rete = ReteFA.fromXML(xmlPath)
