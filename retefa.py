@@ -2127,6 +2127,63 @@ class Main():
         diagnosi = diag.diagnosiLineare(osservazioneLineare)
         return diagnosi
 
+    def fromCompito2(xmlPath: str):
+        """
+        Estrazione delle informazioni necessarie al compito 3 a partire dall'output del compito 2:
+        estrae lo spazio comportamentale e la reteFA dall' XML in uscita al compito 2.
+        :param xmlPath: xml che descrive lo spazio comportamentale relativo ad un osservazione lineare
+        :return: lo spazio comportamentale relativo all'osservazione lineare e la reteFA costruiti a partire dall'XML
+        """
+        scol = SpazioComportamentale()
+        reteFA = ReteFA('')
+        xsdPath = 'inputs/input_compito2.xsd'
+        schema = xmlschema.XMLSchema(xsdPath)
+        if schema.is_valid(xmlPath):
+            tree = ET.ElementTree.parse(source=xmlPath)
+            root = tree.getroot()
+
+            (scol, reteFA) = loads(b64decode(root.findall('base64')))
+
+        return scol, reteFA
+
+    def fromCompito1(xmlPath: str):
+        """
+        Estrazione delle informazioni necessarie al compito 4 a partire dall'output del compito 1:
+        estrae lo spazio comportamentale e la reteFA dall' XML in uscita al compito 1.
+        :param xmlPath: xml che descrive lo spazio comportamentale
+        :return: lo spazio comportamentale e la reteFA costruiti a partire dall'XML
+        """
+        sc = SpazioComportamentale()
+        reteFA = ReteFA('')
+        xsdPath = 'inputs/input_compito1.xsd'
+        schema = xmlschema.XMLSchema(xsdPath)
+        if schema.is_valid(xmlPath):
+            tree = ET.ElementTree.parse(source=xmlPath)
+            root = tree.getroot()
+
+            (sc, reteFA) = loads(b64decode(root.findall('base64')))
+
+        return sc, reteFA
+
+    def fromCompito4(xmlPath: str):
+        """
+        Estrazione delle informazioni necessarie al compito 5 a partire dall'output del compito 4:
+        estrae il diagnosticatore dall' XML in uscita al compito 4.
+        :param xmlPath: xml che descrive lo spazio comportamentale relativo ad un osservazione lineare
+        :return: il diagnosticatore costruito a partire dall'XML
+        """
+        diag = Diagnosticatore()
+        xsdPath = 'inputs/input_compito4.xsd'
+        schema = xmlschema.XMLSchema(xsdPath)
+        if schema.is_valid(xmlPath):
+            tree = ET.ElementTree.parse(source=xmlPath)
+            root = tree.getroot()
+
+            diag = loads(b64decode(root.findall('base64')))
+
+        return diag
+
+
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Expr Reg')
@@ -2134,8 +2191,8 @@ if __name__ == '__main__':
     parser.add_argument("-r", "--reteFA", help="file di input contenente la Rete FA")
     parser.add_argument("-o", "--ol", help="Osservazione Lineare")
 
-    args=parser.parse_args()
-    print(args.ol, args.reteFA)
+    args = parser.parse_args()
+    # print(args.ol, args.reteFA)
 
     if args.compito == 1:
         # controllo validità input
@@ -2143,7 +2200,6 @@ if __name__ == '__main__':
             r1, s1 = Main.compito1(args.reteFA, "")
         else:
             print('rete FA non inserita')
-        print('fine1')
     elif args.compito == 2:
         # controllo validità input
         if args.reteFA is not None:
@@ -2154,8 +2210,6 @@ if __name__ == '__main__':
                 print('Osservazione Lineare non inserita')
         else:
             print('rete FA non inserita')
-        print('fine2')
-
     elif args.compito == 3:
         # controllo validità input
         if args.reteFA is not None:
@@ -2167,8 +2221,7 @@ if __name__ == '__main__':
                 print('Osservazione Lineare non inserita')
         else:
             print('rete FA non inserita')
-        print('fine3')
-        print(d3)
+        print('ciao')
     elif args.compito == 4:
         # controllo validità input
         if args.reteFA is not None:
@@ -2176,8 +2229,6 @@ if __name__ == '__main__':
             diagnosticatore4 = Main.compito4(s1, "")
         else:
             print('rete FA non inserita')
-        print('fine4')
-
     elif args.compito == 5:
         # controllo validità input
         if args.reteFA is not None:
@@ -2188,8 +2239,6 @@ if __name__ == '__main__':
                 d5 = Main.compito5(diagnosticatore4, ol, "")
         else:
             print('rete FA non inserita')
-        print(d5)
-        print('fine5')
 
 
 
