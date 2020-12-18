@@ -979,13 +979,10 @@ class SpazioComportamentale:
                 # fine del while che compone la sequenza
                 # Se ho già trovato una sequenza, non esploro più un altro arco del nodo di partenza
                 if len(sequenza) >= 2:
-                    break
+                    return sequenza
             # fine del for sugli archi uscenti da ni
-            # Se ho già trovato una sequenza, non cerco più un altro nodo di partenza
-            if len(sequenza) >= 2:
-                break
-        # fine del for sui nodi dello sc
-        return sequenza
+        # fine del for sui nodi dello sc quando non ho trovato una sequenza
+        return []
 
     def trovaParalleloArchi(self) -> List[Arco]:
         """
@@ -1155,7 +1152,7 @@ class SpazioComportamentale:
                     scN.addArco(a)
                 # Fine analisi parallelo
 
-                else:
+                else:  # todo: crea un caso di test che finisca qui
                     # Non c'è neanche il parallelo.
                     # Esiste un nodo intermedio con tanti archi in/out e dei cappi?
 
@@ -1311,6 +1308,40 @@ class SpazioComportamentale:
         return ret
 
     @staticmethod
+    def estraiAlternative(expreg: str) -> List[str]:
+        """
+        Data un'espressione regolare, estrae la lista di espressioni in alternativa
+        :param expreg: un'espressione regolare
+        :return: la lista di espressioni in alternativa
+        """
+        alternative = []
+
+        # Contatore parentesi
+        par = 0
+        # buffer da analizzare (una alternativa)
+        buffer = ""
+        for c in expreg:
+            if c == "|" and par == 0:
+                # aggiungiamo il buffer alla lista di alternative
+                alternative.append(buffer)
+                # resettiamo il buffer
+                buffer = ""
+            elif c == "(":
+                par += 1
+                buffer += c
+            elif c == ")":
+                par -= 1
+                buffer += c
+            else:
+                buffer += c
+
+        # Aggiungo alle alternative il residuo del buffer
+        if buffer != "":
+            alternative.append(buffer)
+
+        return alternative
+
+    @staticmethod
     def alternativaRilevanza(base: str, aggiunta: str, hasEps = None) -> (str, bool):
         """
         Data una stringa base e una stringa di aggiunta, compone l'alternativa delle due stringhe
@@ -1319,6 +1350,9 @@ class SpazioComportamentale:
         :param hasEps: True se base contiene già l'alternativa epsilon
         :return: la coppia (base, hasEps) aggiornate, con base come alternativa di base e aggiunta
         """
+        # Elenchiamo le alternative nella stringa base
+        alternative = SpazioComportamentale.estraiAlternative(base)
+
         if hasEps is None:
             # Verifica se base contiene epsilon
             if base == "":
@@ -1326,33 +1360,17 @@ class SpazioComportamentale:
             elif SpazioComportamentale.isConcatenazione(base):
                 hasEps = False
             else:
-                # Contatore parentesi
-                par = 0
-                # buffer da analizzare (una alternativa)
-                buffer = ""
-                hasEps = False
-                for c in base:
-                    if c == "|" and par == 0:
-                        # studiamo il buffer
-                        if buffer == "ε":
-                            hasEps = True
-                            break
-                        # resettiamo il buffer
-                        buffer = ""
-                    elif c == "(":
-                        par += 1
-                        buffer += c
-                    elif c == ")":
-                        par -= 1
-                        buffer += c
-                    else:
-                        buffer += c
+                hasEps = "ε" in alternative or "" in alternative
             # base = "aasasasa"
             # base = ""
             # base = "a|b|c"
             # base = "a|b|c|ε"
             # base = "a|(bc|d|ε)b|c"
             # base = "a|(bc|d|ε)|c"
+
+        # Se l'aggiunta è già nelle alternative, non l'aggiungo
+        if aggiunta in alternative:
+            return base, hasEps
 
         if base != "" and (aggiunta != "" or (aggiunta == "" and not hasEps)):
             base += "|"
@@ -2130,6 +2148,8 @@ class Main():
 
 if __name__ == '__main__':
     xmlPath = 'inputs/input.xml'
+    # ol = ["o3", "o2"]
+    # ol = ["o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2"]
     ol = ["o3", "o2", "o3", "o2"]
 
     r1, s1 = Main.compito1(xmlPath, "")
@@ -2144,11 +2164,12 @@ if __name__ == '__main__':
     # except Exception as e:
     #     print(f"Ho intercettato un eccezione in Compito 2: {e}")
 
+    # d3 = "pizza"
     d3 = Main.compito3(scol, "")
 
     diagnosticatore4 = Main.compito4(s1, "")
 
-    d5 = Main.compito5(diagnosticatore4, ol)
+    d5 = Main.compito5(diagnosticatore4, ol, "")
 
     print(f"Diagnosi ottenute:\nDa compito 3: {d3}\nDa compito 5: {d5}")
 
