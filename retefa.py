@@ -2078,28 +2078,30 @@ class Main():
         :param osservazioneLineare: una lista ordinata di stringhe dove ogni stringa rappresenta un'osservazione su reteFA
         :param output_path: il percorso su disco dove salvare il file XML che descrive l'output di Compito 2
         :return: la coppia ReteFA, SpazioComportamentale
-        :raises NotImplementedError: se il reteFA in input non è una ReteFA o il path a un file XML di reteFA
         """
-        raise NotImplementedError("Il tipo di reteFA in input alla funzione compito2 non è valido.")
-
-    @compito2.register(str)
-    @staticmethod
-    def _(reteFA: str, osservazioneLineare: List[str], output_path: str) -> (ReteFA, SpazioComportamentale):
         rete = ReteFA.fromXML(reteFA)
         scol = SpazioComportamentale()
         scol.creaSpazioComportamentaleOsservazioneLineare(rete, osservazioneLineare)
         scol.potaturaRidenominazione()
-
         return rete, scol
+        #raise NotImplementedError("Il tipo di reteFA in input alla funzione compito2 non è valido.")
 
-    @compito2.register(ReteFA)
-    @staticmethod
-    def _(reteFA: ReteFA, osservazioneLineare: List[str], output_path: str) -> (ReteFA, SpazioComportamentale):
-        scol = SpazioComportamentale()
-        scol.creaSpazioComportamentaleOsservazioneLineare(reteFA, osservazioneLineare)
-        scol.potaturaRidenominazione()
-
-        return reteFA, scol
+#    @compito2.register(str)
+#    @staticmethod
+#    def _(reteFA: str, osservazioneLineare: List[str], output_path: str) -> (ReteFA, SpazioComportamentale):
+#        rete = ReteFA.fromXML(reteFA)
+#        scol = SpazioComportamentale()
+#        scol.creaSpazioComportamentaleOsservazioneLineare(rete, osservazioneLineare)
+#        scol.potaturaRidenominazione()
+#        return rete, scol
+#
+#    @compito2.register(ReteFA)
+#    @staticmethod
+#    def _(reteFA: ReteFA, osservazioneLineare: List[str], output_path: str) -> (ReteFA, SpazioComportamentale):
+#        scol = SpazioComportamentale()
+#        scol.creaSpazioComportamentaleOsservazioneLineare(reteFA, osservazioneLineare)
+#        scol.potaturaRidenominazione()
+#        return reteFA, scol
 
     @staticmethod
     def compito3(scol: SpazioComportamentale, output_path: str) -> str:
@@ -2145,8 +2147,157 @@ class Main():
         diagnosi = diag.diagnosiLineare(osservazioneLineare)
         return diagnosi
 
+    def fromCompito2(xmlPath: str):
+        """
+        Estrazione delle informazioni necessarie al compito 3 a partire dall'output del compito 2:
+        estrae lo spazio comportamentale e la reteFA dall' XML in uscita al compito 2.
+        :param xmlPath: xml che descrive lo spazio comportamentale relativo ad un osservazione lineare
+        :return: lo spazio comportamentale relativo all'osservazione lineare e la reteFA costruiti a partire dall'XML
+        """
+        scol = SpazioComportamentale()
+        reteFA = ReteFA('')
+        xsdPath = 'inputs/input_compito2.xsd'
+        schema = xmlschema.XMLSchema(xsdPath)
+        if schema.is_valid(xmlPath):
+            tree = ET.ElementTree.parse(source=xmlPath)
+            root = tree.getroot()
+
+            (scol, reteFA) = loads(b64decode(root.findall('base64')))
+
+        return scol, reteFA
+
+    def fromCompito1(xmlPath: str):
+        """
+        Estrazione delle informazioni necessarie al compito 4 a partire dall'output del compito 1:
+        estrae lo spazio comportamentale e la reteFA dall' XML in uscita al compito 1.
+        :param xmlPath: xml che descrive lo spazio comportamentale
+        :return: lo spazio comportamentale e la reteFA costruiti a partire dall'XML
+        """
+        sc = SpazioComportamentale()
+        reteFA = ReteFA('')
+        xsdPath = 'inputs/input_compito1.xsd'
+        schema = xmlschema.XMLSchema(xsdPath)
+        if schema.is_valid(xmlPath):
+            tree = ET.ElementTree.parse(source=xmlPath)
+            root = tree.getroot()
+
+            (sc, reteFA) = loads(b64decode(root.findall('base64')))
+
+        return sc, reteFA
+
+    def fromCompito4(xmlPath: str):
+        """
+        Estrazione delle informazioni necessarie al compito 5 a partire dall'output del compito 4:
+        estrae il diagnosticatore dall' XML in uscita al compito 4.
+        :param xmlPath: xml che descrive lo spazio comportamentale relativo ad un osservazione lineare
+        :return: il diagnosticatore costruito a partire dall'XML
+        """
+        diag = Diagnosticatore()
+        xsdPath = 'inputs/input_compito4.xsd'
+        schema = xmlschema.XMLSchema(xsdPath)
+        if schema.is_valid(xmlPath):
+            tree = ET.ElementTree.parse(source=xmlPath)
+            root = tree.getroot()
+
+            diag = loads(b64decode(root.findall('base64')))
+
+        return diag
+
 
 if __name__ == '__main__':
+
+    parser = argparse.ArgumentParser(description='Expr Reg')
+    parser.add_argument("compito", type=int, help="Numero del Compito da eseguire", choices=[1, 2, 3, 4, 5])
+    parser.add_argument("-r", "--reteFA", help="file di input contenente la Rete FA")
+    parser.add_argument("-o", "--ol", help="Osservazione Lineare")
+    parser.add_argument("-p", "--precedente", action='store_true', default=False, help="Utilizza output di un compito precedente")
+    parser.add_argument("-f", "--fileOutput", help="file di input contenente l'output di un compito precedente")
+
+    args = parser.parse_args()
+    # print(args.ol, args.reteFA)
+
+    if args.compito == 1:
+        # controllo validità input
+        if args.reteFA is not None:
+            r1, s1 = Main.compito1(args.reteFA, "")
+        else:
+            print('rete FA non inserita')
+        print('ciao')
+    elif args.compito == 2:
+        # controllo validità input
+        if args.reteFA is not None:
+            if args.ol is not None:
+                ol = args.ol.strip(']["').split(',')
+                r2a, scol = Main.compito2(args.reteFA, ol, "")
+            else:
+                print('Osservazione Lineare non inserita')
+        else:
+            print('rete FA non inserita')
+        print('ciao')
+    elif args.compito == 3:
+        # controllo validità input
+        if not args.precedente:
+            if args.reteFA is not None:
+                if args.ol is not None:
+                    ol = args.ol.strip(']["').split(',')
+                    r2a, scol = Main.compito2(args.reteFA, ol, "")
+                    d3 = Main.compito3(scol, "")
+                else:
+                    print('Osservazione Lineare non inserita')
+            else:
+                print('rete FA non inserita')
+        elif args.precedente:
+            if args.fileOutput is not None:
+                scol, reteFA = Main.fromCompito2(args.fileOutput)
+                d3 = Main.compito3(scol, "")
+            else:
+                print('percorso file non inserito')
+        else:
+            print('parametri non validi')
+        print('ciao')
+    elif args.compito == 4:
+        # controllo validità input
+        if not args.precedente:
+            if args.reteFA is not None:
+                reteFA, sc = Main.compito1(args.reteFA, "")
+                diagnosticatore4 = Main.compito4(sc, "")
+            else:
+                print('rete FA non inserita')
+        elif args.precedente:
+            if args.fileOutput is not None:
+                sc, reteFA = Main.fromCompito1(args.fileOutput)
+                diagnosticatore4 = Main.compito4(sc, "")
+            else:
+                print('percorso file non inserito')
+        else:
+            print('parametri non validi')
+    elif args.compito == 5:
+        # controllo validità input
+        if not args.precedente:
+            if args.reteFA is not None:
+                if args.ol is not None:
+                    ol = args.ol.strip(']["').split(',')
+                    r1, s1 = Main.compito1(args.reteFA, "")
+                    diagnosticatore4 = Main.compito4(s1, "")
+                    d5 = Main.compito5(diagnosticatore4, ol, "")
+            else:
+                print('rete FA non inserita')
+        elif args.precedente:
+            if args.fileOutput is not None:
+                    if args.ol is not None:
+                        ol = args.ol.strip(']["').split(',')
+                        diag = Main.fromCompito4(args.fileOutput)
+                        d5 = Main.compito5(diag, ol, "")
+                    else:
+                        print('Osservazione Lineare non inserita')
+            else:
+                print('percorso file non inserito')
+        else:
+            print('parametri non validi')
+
+
+
+if __name__ == '__mainF__':
     xmlPath = 'inputs/input.xml'
     # ol = ["o3", "o2"]
     # ol = ["o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2"]
@@ -2172,10 +2323,6 @@ if __name__ == '__main__':
     d5 = Main.compito5(diagnosticatore4, ol, "")
 
     print(f"Diagnosi ottenute:\nDa compito 3: {d3}\nDa compito 5: {d5}")
-
-
-
-
 
 
 if __name__ == '__compito 5__':
@@ -2209,7 +2356,7 @@ if __name__ == '__compito 4__':
 
     print(f"fine")
 
-if __name__ == '__compito 3__':
+if __name__ == '__compito3__':
     # Test compito 3
     xmlPath = 'inputs/input.xml'
     rete = ReteFA.fromXML(xmlPath)
