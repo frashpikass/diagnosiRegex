@@ -397,6 +397,45 @@ class ReteFA:
                                  f"della ReteFA inserita.")
         return True
 
+    def makeDotGraph(self) -> str:
+        """
+        Genera la rappresentazione in formato DOT della ReteFA, visualizzabile tramite GraphViz.
+        :return: la rappresentazione in formato DOT della ReteFA
+        """
+        comportamenti = ""
+        stati = ""
+        transizioni = ""
+        links = ""
+        eventi = ""
+        nodi = "start[shape=\"circle\"]"
+        archi = f"start\t->\tn{self.nodoIniziale.nome}"
+
+        n: Nodo
+        for n in self.nodi:
+            stati = " ".join([stato.nome for stato in n.stati])
+            links = " ".join(str(link) for link in n.contenutoLink)
+            finale = 'peripheries=2' if n.isFinale else ''
+            # Compilo i nodi
+            nodi += f"\n\tn{n.nome} [label=<<b>{n.nome}</b><br/>{stati} {links}> {finale}]"
+            a: Arco
+            for a in n.archiUscenti:
+                transizione = a.transizione.nome if a.transizione else ''
+                osservabilita = f" <font color=\"green4\">{a.osservabilita}</font>" if a.osservabilita != "" else ""
+                rilevanza = f" <font color=\"red\">{a.rilevanza}</font>" if a.rilevanza != "" else ""
+                # Compilo gli archi
+                archi += f"\n\tn{n.nome}\t->\tn{a.nodo1.nome} [label=<{transizione}{osservabilita}{rilevanza}>]"
+
+        # Compilo l'outputs
+        out = f"""digraph SpazioComportamentale {{
+    // NODI
+    {nodi}
+
+    // ARCHI
+    {archi}
+}}
+"""
+        return out
+
 
 class Nodo:
     def __init__(self):
@@ -2102,14 +2141,12 @@ class Main():
 
         sc_elem = ET.ElementTree.SubElement(root, "spazioComportamentale")
         sc_elem.text = "'" + dotgraph + "'"
-        # sc_elem.text = "sosksksks"
 
         commento_elem = ET.ElementTree.SubElement(root, "commento")
         commento_elem.text = commento
 
         base64_elem = ET.ElementTree.SubElement(root, "base64")
-        base64_elem.text = str(b64encode(dumps((rete, sc))))
-        # base64_elem.text = "HA"
+        base64_elem.text = str(b64encode(dumps((rete, sc))),'utf-8')
 
         # t.write(filename, encoding="utf-8")
         with open(filename + ".xml", 'wb') as fileXML, \
