@@ -9,7 +9,8 @@ import xml.etree as ET
 import argparse
 from pickle import dumps, loads
 from base64 import b64encode, b64decode
-
+from datetime import date
+import subprocess
 
 ## CLASSI ##
 
@@ -187,8 +188,6 @@ class ReteFA:
             
             8- compilazione delle transizioni uscenti
         """
-
-        # import xml.etree as ET
 
         # Validazione dell'XML
         if ReteFA.validateXML(xmlPath):
@@ -1503,6 +1502,40 @@ class SpazioComportamentale:
         # Ritorna lo spazio delle chiusure generato, che ormai è un diagnosticatore
         return d
 
+    def makeDotGraph(self) -> str:
+        """
+        Genera la rappresentazione in formato DOT dello SpazioComportamentale, visualizzabile tramite GraphViz.
+        :return: la rappresentazione in formato DOT dello SpazioComportamentale
+        """
+        nodi = "start[shape=\"circle\"]"
+        archi = f"start\t->\tn{self.nodoIniziale.nome}"
+
+        n: Nodo
+        for n in self.nodi:
+            stati = " ".join([stato.nome for stato in n.stati])
+            links = " ".join(str(link) for link in n.contenutoLink)
+            finale = 'peripheries=2' if n.isFinale else ''
+            # Compilo i nodi
+            nodi += f"\n\tn{n.nome} [label=<<b>{n.nome}</b><br/>{stati} {links}> {finale}]"
+            a: Arco
+            for a in n.archiUscenti:
+                transizione = a.transizione.nome if a.transizione else ''
+                osservabilita = f" <font color=\"green4\">{a.osservabilita}</font>" if a.osservabilita != "" else ""
+                rilevanza = f" <font color=\"red\">{a.rilevanza}</font>" if a.rilevanza != "" else ""
+                # Compilo gli archi
+                archi += f"\n\tn{n.nome}\t->\tn{a.nodo1.nome} [label=<{transizione}{osservabilita}{rilevanza}>]"
+
+        # Compilo l'output
+        out = f"""digraph SpazioComportamentale {{
+    // NODI
+    {nodi}
+
+    // ARCHI
+    {archi}
+}}
+"""
+        return out
+
 
 class Chiusura(SpazioComportamentale):
     def __init__(self):
@@ -2047,6 +2080,50 @@ class Diagnosticatore(SpazioComportamentale):
 
 class Main():
     @staticmethod
+    def outputSerializer(nome_radice: str, rete: ReteFA, sc: SpazioComportamentale, commento="test", output_path=""):
+        """
+        Genera i file di output (XML e DOT/GV) relativi alla reteFA e allo SpazioComportamentale in ingresso.
+        Se possibile, renderizza lo spazio comportamentale in input mediante il tool dot di GraphViz.
+        Per funzionare, GraphViz deve essere installato e dot deve essere nella PATH del sistema operativo.
+        Vedi https://graphviz.org/download/ per informazioni.
+
+        :param nome_radice: nome del compito per cui si sta generando l'output
+        :param rete: la ReteFA in output
+        :param sc: lo SpazioComportamentale in output
+        :param commento: un commento in merito all'esecuzione del compito
+        :param output_path: percorso che punta alla cartella dove salvare l'output
+        """
+        today = date.today()
+        filename = output_path + today.strftime("%Y%m%d") + "_" + nome_radice
+        root = ET.ElementTree.Element(nome_radice)
+        t = ET.ElementTree.ElementTree(root)
+
+        dotgraph = sc.makeDotGraph()
+
+        sc_elem = ET.ElementTree.SubElement(root, "spazioComportamentale")
+        sc_elem.text = "'" + dotgraph + "'"
+        # sc_elem.text = "sosksksks"
+
+        commento_elem = ET.ElementTree.SubElement(root, "commento")
+        commento_elem.text = commento
+
+        base64_elem = ET.ElementTree.SubElement(root, "base64")
+        base64_elem.text = str(b64encode(dumps((rete, sc))))
+        # base64_elem.text = "HA"
+
+        # t.write(filename, encoding="utf-8")
+        with open(filename + ".xml", 'wb') as fileXML, \
+                open(filename + ".gv", 'w', encoding="utf-8") as fileDOT:
+            t.write(fileXML, encoding="utf-8", short_empty_elements=False)
+            fileDOT.write(dotgraph)
+
+        try:
+            subprocess.call(f"dot -Tpng {filename}.gv -o {filename}.png")
+        except Exception as fnf:
+            print(fnf+"Forse graphviz non è installato ed impostato nella variabile PATH di sistema... vedi "
+                      "https://graphviz.org/download/")
+
+    @staticmethod
     def compito1(reteFA_xml_path: str, output_path: str) -> (ReteFA, SpazioComportamentale):
         """
         Genera gli oggetti ReteFA e SpazioComportamentale a partire da una descrizione della rete FA come file XML
@@ -2084,24 +2161,24 @@ class Main():
         scol.creaSpazioComportamentaleOsservazioneLineare(rete, osservazioneLineare)
         scol.potaturaRidenominazione()
         return rete, scol
-        #raise NotImplementedError("Il tipo di reteFA in input alla funzione compito2 non è valido.")
+        raise NotImplementedError("Il tipo di reteFA in input alla funzione compito2 non è valido.")
 
-#    @compito2.register(str)
-#    @staticmethod
-#    def _(reteFA: str, osservazioneLineare: List[str], output_path: str) -> (ReteFA, SpazioComportamentale):
-#        rete = ReteFA.fromXML(reteFA)
-#        scol = SpazioComportamentale()
-#        scol.creaSpazioComportamentaleOsservazioneLineare(rete, osservazioneLineare)
-#        scol.potaturaRidenominazione()
-#        return rete, scol
-#
-#    @compito2.register(ReteFA)
-#    @staticmethod
-#    def _(reteFA: ReteFA, osservazioneLineare: List[str], output_path: str) -> (ReteFA, SpazioComportamentale):
-#        scol = SpazioComportamentale()
-#        scol.creaSpazioComportamentaleOsservazioneLineare(reteFA, osservazioneLineare)
-#        scol.potaturaRidenominazione()
-#        return reteFA, scol
+    @compito2.register(str)
+    @staticmethod
+    def _(reteFA: str, osservazioneLineare: List[str], output_path: str) -> (ReteFA, SpazioComportamentale):
+        rete = ReteFA.fromXML(reteFA)
+        scol = SpazioComportamentale()
+        scol.creaSpazioComportamentaleOsservazioneLineare(rete, osservazioneLineare)
+        scol.potaturaRidenominazione()
+        return rete, scol
+
+    @compito2.register(ReteFA)
+    @staticmethod
+    def _(reteFA: ReteFA, osservazioneLineare: List[str], output_path: str) -> (ReteFA, SpazioComportamentale):
+        scol = SpazioComportamentale()
+        scol.creaSpazioComportamentaleOsservazioneLineare(reteFA, osservazioneLineare)
+        scol.potaturaRidenominazione()
+        return reteFA, scol
 
     @staticmethod
     def compito3(scol: SpazioComportamentale, output_path: str) -> str:
@@ -2204,7 +2281,7 @@ class Main():
         return diag
 
 
-if __name__ == '__main__':
+if __name__ == '__main1__':
 
     parser = argparse.ArgumentParser(description='Expr Reg')
     parser.add_argument("compito", type=int, help="Numero del Compito da eseguire", choices=[1, 2, 3, 4, 5])
@@ -2297,31 +2374,38 @@ if __name__ == '__main__':
 
 
 
-if __name__ == '__mainF__':
+if __name__ == '__main__':
     xmlPath = 'inputs/input.xml'
     # ol = ["o3", "o2"]
     # ol = ["o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2"]
     ol = ["o3", "o2", "o3", "o2"]
 
+    # Test Output Compito 1
     r1, s1 = Main.compito1(xmlPath, "")
+    Main.outputSerializer("compito1", r1, s1)
 
+    # Test Output Compito 2
     scol = None
     # try:
     r2a, scol2a = Main.compito2(xmlPath, ol, "")
     r2b, scol2b = Main.compito2(r1, ol, "")
     scol = scol2a if scol2a else scol2b if scol2b else None
+    Main.outputSerializer("compito2", r2a, scol)
     # Main.compito2(None, ol, "")
-
     # except Exception as e:
     #     print(f"Ho intercettato un eccezione in Compito 2: {e}")
 
-    # d3 = "pizza"
+    # Test Output Compito 3
     d3 = Main.compito3(scol, "")
 
+    # Test Output Compito 4
     diagnosticatore4 = Main.compito4(s1, "")
+    Main.outputSerializer("compito4", r1, diagnosticatore4)
 
+    # Test Output Compito 5
     d5 = Main.compito5(diagnosticatore4, ol, "")
 
+    # Stampo le diagnosi
     print(f"Diagnosi ottenute:\nDa compito 3: {d3}\nDa compito 5: {d5}")
 
 
