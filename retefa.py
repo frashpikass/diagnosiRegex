@@ -262,7 +262,7 @@ class ReteFA:
                                         raise KeyError(
                                             f'Il link {nomeLinkEventoNecessario} relativo all\'evento necessario {nomeEventoNecessario} della transizione {nomeTrans} del comportamento {nomeComp} non è stato definito nella rete')
 
-                                # 7. Aggiunta degli eventi in output alla transizione
+                                # 7. Aggiunta degli eventi in outputs alla transizione
                                 eventiOutput = []
                                 for eo in trans.findall('eventiOutput/evento'):
                                     nomeEventoOutput = eo.attrib['nome']
@@ -271,12 +271,12 @@ class ReteFA:
                                     # Cerchiamo il link nel comportamento
                                     linkEventoOutput = out.findLinkByNome(nomeLinkEventoOutput)
                                     if linkEventoOutput is not None:
-                                        # Costruiamo l'evento output e aggiungiamolo alla lista
+                                        # Costruiamo l'evento outputs e aggiungiamolo alla lista
                                         eventoOutput = Buffer(linkEventoOutput, nomeEventoOutput)
                                         eventiOutput.append(eventoOutput)
                                     else:
                                         raise KeyError(
-                                            f'Il link {nomeLinkEventoOutput} relativo all\'evento output {nomeEventoOutput} della transizione {nomeTrans} del comportamento {nomeComp} non è stato definito nella rete')
+                                            f'Il link {nomeLinkEventoOutput} relativo all\'evento outputs {nomeEventoOutput} della transizione {nomeTrans} del comportamento {nomeComp} non è stato definito nella rete')
 
                                 # Se entrambi gli stati della transizione sono presenti,
                                 # aggiungiamo la nuova transizione
@@ -493,7 +493,7 @@ class Nodo:
         # - il contenuto dei buffer dei link coinvolti nella transizione, aggiornato con gli eventi uscenti
         # - il flag isFinale a true se il nodo è finale
 
-        # Inizializziamo il nodo in output a questa funzione
+        # Inizializziamo il nodo in outputs a questa funzione
         # creando un clone del nodo in input, che poi modificheremo in corso d'opera
         # in modo da rispecchiare gli effetti della transizione
         nodoOutput: Nodo
@@ -510,10 +510,10 @@ class Nodo:
                 # procediamo
             else:
                 # La transizione non è fattibile perché manca l'evento necessario
-                # ritorniamo None come nodo output
+                # ritorniamo None come nodo outputs
                 return None
 
-        # 2. Verifichiamo se c'è spazio nel buffer del nodo per gli eventi in output
+        # 2. Verifichiamo se c'è spazio nel buffer del nodo per gli eventi in outputs
 
         # Verifica che i link che saranno riempiti dalla transizione siano scarichi
         # Recuperiamo gli eventi in uscita alla transizione, poi ne verifichiamo la fattibilità
@@ -526,7 +526,7 @@ class Nodo:
 
             # Se il buffer è già pieno
             if bufferOutput.evento != "":
-                # allora la transizione non è fattibile: ritorniamo None come nodo output
+                # allora la transizione non è fattibile: ritorniamo None come nodo outputs
                 return None
             else:
                 # altrimenti dobbiamo inserire l'evento in uscita nei buffer
@@ -546,7 +546,7 @@ class Nodo:
                 nodoOutput.isFinale = False
                 break
 
-        # Dopo averlo costruito e popolato, ritorniamo il nodo output generato dalla transizione
+        # Dopo averlo costruito e popolato, ritorniamo il nodo outputs generato dalla transizione
         return nodoOutput
 
     def cercaContenutoLink(self, link: Link) -> Buffer:
@@ -1525,7 +1525,7 @@ class SpazioComportamentale:
                 # Compilo gli archi
                 archi += f"\n\tn{n.nome}\t->\tn{a.nodo1.nome} [label=<{transizione}{osservabilita}{rilevanza}>]"
 
-        # Compilo l'output
+        # Compilo l'outputs
         out = f"""digraph SpazioComportamentale {{
     // NODI
     {nodi}
@@ -2082,16 +2082,16 @@ class Main():
     @staticmethod
     def outputSerializer(nome_radice: str, rete: ReteFA, sc: SpazioComportamentale, commento="test", output_path=""):
         """
-        Genera i file di output (XML e DOT/GV) relativi alla reteFA e allo SpazioComportamentale in ingresso.
+        Genera i file di outputs (XML e DOT/GV) relativi alla reteFA e allo SpazioComportamentale in ingresso.
         Se possibile, renderizza lo spazio comportamentale in input mediante il tool dot di GraphViz.
         Per funzionare, GraphViz deve essere installato e dot deve essere nella PATH del sistema operativo.
         Vedi https://graphviz.org/download/ per informazioni.
 
-        :param nome_radice: nome del compito per cui si sta generando l'output
-        :param rete: la ReteFA in output
-        :param sc: lo SpazioComportamentale in output
+        :param nome_radice: nome del compito per cui si sta generando l'outputs
+        :param rete: la ReteFA in outputs
+        :param sc: lo SpazioComportamentale in outputs
         :param commento: un commento in merito all'esecuzione del compito
-        :param output_path: percorso che punta alla cartella dove salvare l'output
+        :param output_path: percorso che punta alla cartella dove salvare l'outputs
         """
         today = date.today()
         filename = output_path + today.strftime("%Y%m%d") + "_" + nome_radice
@@ -2128,11 +2128,11 @@ class Main():
         """
         Genera gli oggetti ReteFA e SpazioComportamentale a partire da una descrizione della rete FA come file XML
         ben formattato.
-        Inoltre salva su disco il file di output corrispondente nella posizione specificata in output_path (o in
+        Inoltre salva su disco il file di outputs corrispondente nella posizione specificata in output_path (o in
         alternativa nella stessa cartella dell'input).
 
         :param reteFA_xml_path: il percorso su disco al file XML che descrive la ReteFa
-        :param output_path: il percorso su disco dove salvare il file XML che descrive l'output di Compito1
+        :param output_path: il percorso su disco dove salvare il file XML che descrive l'outputs di Compito1
         :return: la coppia ReteFA, SpazioComportamentale
         """
         rete = ReteFA.fromXML(reteFA_xml_path)
@@ -2148,12 +2148,12 @@ class Main():
         """
         Genera gli oggetti ReteFA e SpazioComportamentale relativo all'osservazione lineare data, a partire da una
         descrizione della rete FA come file XML ben formattato e un'osservazione lineare valida sulla rete FA.
-        Inoltre salva su disco il file di output corrispondente nella posizione specificata in output_path (o in
+        Inoltre salva su disco il file di outputs corrispondente nella posizione specificata in output_path (o in
         alternativa nella stessa cartella dell'input).
 
         :param reteFA: il percorso su disco al file XML che descrive la ReteFa
         :param osservazioneLineare: una lista ordinata di stringhe dove ogni stringa rappresenta un'osservazione su reteFA
-        :param output_path: il percorso su disco dove salvare il file XML che descrive l'output di Compito 2
+        :param output_path: il percorso su disco dove salvare il file XML che descrive l'outputs di Compito 2
         :return: la coppia ReteFA, SpazioComportamentale
         """
         rete = ReteFA.fromXML(reteFA)
@@ -2184,11 +2184,11 @@ class Main():
     def compito3(scol: SpazioComportamentale, output_path: str) -> str:
         """
         Genera la diagnosi a partire dallo SpazioComportamentale relativo all'osservazione lineare (come generato da compito2).
-        Inoltre salva su disco il file di output corrispondente nella posizione specificata in output_path (o in
+        Inoltre salva su disco il file di outputs corrispondente nella posizione specificata in output_path (o in
         alternativa nella stessa cartella dell'input).
 
         :param scol: lo SpazioComportamentale relativo all'osservazione lineare generato da Compito 2
-        :param output_path: il percorso su disco dove salvare il file XML che descrive l'output di Compito 3
+        :param output_path: il percorso su disco dove salvare il file XML che descrive l'outputs di Compito 3
         :return: la stringa di diagnosi relativa all'osservazione lineare data sulla ReteFA
         """
         diagnosi = scol.espressioneRegolare()
@@ -2198,11 +2198,11 @@ class Main():
     def compito4(spazio: SpazioComportamentale, output_path: str) -> Diagnosticatore:
         """
         Genera il diagnosticatore a partire dallo SpazioComportamentale (come generato da compito1).
-        Inoltre salva su disco il file di output corrispondente nella posizione specificata in output_path (o in
+        Inoltre salva su disco il file di outputs corrispondente nella posizione specificata in output_path (o in
         alternativa nella stessa cartella dell'input).
 
         :param spazio: lo SpazioComportamentale generato da Compito 1
-        :param output_path: il percorso su disco dove salvare il file XML che descrive l'output di Compito 4
+        :param output_path: il percorso su disco dove salvare il file XML che descrive l'outputs di Compito 4
         :return: il Diagnosticatore corrispondente
         """
         diagnosticatore = spazio.generaDiagnosticatore()
@@ -2213,12 +2213,12 @@ class Main():
         """
         Genera la diagnosi relativa all'osservazione lineare a partire dal Diagnosticatore (come generato da compito 4)
         e ad una osservazione lineare.
-        Inoltre salva su disco il file di output corrispondente nella posizione specificata in output_path (o in
+        Inoltre salva su disco il file di outputs corrispondente nella posizione specificata in output_path (o in
         alternativa nella stessa cartella dell'input).
 
         :param diag: il Diagnosticatore di una ReteFA
         :param osservazioneLineare: una lista ordinata di stringhe dove ogni stringa rappresenta un'osservazione su reteFA
-        :param output_path: il percorso su disco dove salvare il file XML che descrive l'output di Compito 4
+        :param output_path: il percorso su disco dove salvare il file XML che descrive l'outputs di Compito 4
         :return: la stringa di diagnosi relativa all'osservazione lineare data sulla ReteFA
         """
         diagnosi = diag.diagnosiLineare(osservazioneLineare)
@@ -2226,7 +2226,7 @@ class Main():
 
     def fromCompito2(xmlPath: str):
         """
-        Estrazione delle informazioni necessarie al compito 3 a partire dall'output del compito 2:
+        Estrazione delle informazioni necessarie al compito 3 a partire dall'outputs del compito 2:
         estrae lo spazio comportamentale e la reteFA dall' XML in uscita al compito 2.
         :param xmlPath: xml che descrive lo spazio comportamentale relativo ad un osservazione lineare
         :return: lo spazio comportamentale relativo all'osservazione lineare e la reteFA costruiti a partire dall'XML
@@ -2245,7 +2245,7 @@ class Main():
 
     def fromCompito1(xmlPath: str):
         """
-        Estrazione delle informazioni necessarie al compito 4 a partire dall'output del compito 1:
+        Estrazione delle informazioni necessarie al compito 4 a partire dall'outputs del compito 1:
         estrae lo spazio comportamentale e la reteFA dall' XML in uscita al compito 1.
         :param xmlPath: xml che descrive lo spazio comportamentale
         :return: lo spazio comportamentale e la reteFA costruiti a partire dall'XML
@@ -2264,7 +2264,7 @@ class Main():
 
     def fromCompito4(xmlPath: str):
         """
-        Estrazione delle informazioni necessarie al compito 5 a partire dall'output del compito 4:
+        Estrazione delle informazioni necessarie al compito 5 a partire dall'outputs del compito 4:
         estrae il diagnosticatore dall' XML in uscita al compito 4.
         :param xmlPath: xml che descrive lo spazio comportamentale relativo ad un osservazione lineare
         :return: il diagnosticatore costruito a partire dall'XML
@@ -2287,8 +2287,8 @@ if __name__ == '__main1__':
     parser.add_argument("compito", type=int, help="Numero del Compito da eseguire", choices=[1, 2, 3, 4, 5])
     parser.add_argument("-r", "--reteFA", help="file di input contenente la Rete FA")
     parser.add_argument("-o", "--ol", help="Osservazione Lineare")
-    parser.add_argument("-p", "--precedente", action='store_true', default=False, help="Utilizza output di un compito precedente")
-    parser.add_argument("-f", "--fileOutput", help="file di input contenente l'output di un compito precedente")
+    parser.add_argument("-p", "--precedente", action='store_true', default=False, help="Utilizza outputs di un compito precedente")
+    parser.add_argument("-f", "--fileOutput", help="file di input contenente l'outputs di un compito precedente")
 
     args = parser.parse_args()
     # print(args.ol, args.reteFA)
@@ -2372,8 +2372,7 @@ if __name__ == '__main1__':
         else:
             print('parametri non validi')
 
-
-
+# Target di esecuzione per il test dell'output di tutti i compiti
 if __name__ == '__main__':
     xmlPath = 'inputs/input.xml'
     # ol = ["o3", "o2"]
@@ -2382,7 +2381,7 @@ if __name__ == '__main__':
 
     # Test Output Compito 1
     r1, s1 = Main.compito1(xmlPath, "")
-    Main.outputSerializer("compito1", r1, s1)
+    Main.outputSerializer("compito1", r1, s1, output_path="outputs/")
 
     # Test Output Compito 2
     scol = None
@@ -2390,7 +2389,7 @@ if __name__ == '__main__':
     r2a, scol2a = Main.compito2(xmlPath, ol, "")
     r2b, scol2b = Main.compito2(r1, ol, "")
     scol = scol2a if scol2a else scol2b if scol2b else None
-    Main.outputSerializer("compito2", r2a, scol)
+    Main.outputSerializer("compito2", r2a, scol, output_path="outputs/")
     # Main.compito2(None, ol, "")
     # except Exception as e:
     #     print(f"Ho intercettato un eccezione in Compito 2: {e}")
@@ -2400,7 +2399,7 @@ if __name__ == '__main__':
 
     # Test Output Compito 4
     diagnosticatore4 = Main.compito4(s1, "")
-    Main.outputSerializer("compito4", r1, diagnosticatore4)
+    Main.outputSerializer("compito4", r1, diagnosticatore4, output_path="outputs/")
 
     # Test Output Compito 5
     d5 = Main.compito5(diagnosticatore4, ol, "")
