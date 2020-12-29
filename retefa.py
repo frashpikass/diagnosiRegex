@@ -2301,15 +2301,17 @@ class Main():
         """
         scol = SpazioComportamentale()
         reteFA = ReteFA('')
-        xsdPath = 'inputs/input_compito2.xsd'
+        xsdPath = 'inputs/output_compito2.xsd'
         schema = xmlschema.XMLSchema(xsdPath)
         if schema.is_valid(xmlPath):
             tree = ET.ElementTree.parse(source=xmlPath)
             root = tree.getroot()
 
-            (scol, reteFA) = loads(b64decode(root.findall('base64')))
+            pickledb64 = root.find('base64').text
 
-        return scol, reteFA
+            (reteFA, scol) = loads(b64decode(pickledb64))
+
+        return reteFA, scol
 
     def fromCompito1(xmlPath: str):
         """
@@ -2320,15 +2322,15 @@ class Main():
         """
         sc = SpazioComportamentale()
         reteFA = ReteFA('')
-        xsdPath = 'inputs/input_compito1.xsd'
+        xsdPath = 'inputs/output_compito1.xsd'
         schema = xmlschema.XMLSchema(xsdPath)
         if schema.is_valid(xmlPath):
             tree = ET.ElementTree.parse(source=xmlPath)
             root = tree.getroot()
 
-            (sc, reteFA) = loads(b64decode(root.findall('base64')))
+            (reteFA, sc) = loads(b64decode(root.find('base64').text))
 
-        return sc, reteFA
+        return reteFA, sc
 
     def fromCompito4(xmlPath: str):
         """
@@ -2338,18 +2340,18 @@ class Main():
         :return: il diagnosticatore costruito a partire dall'XML
         """
         diag = Diagnosticatore()
-        xsdPath = 'inputs/input_compito4.xsd'
+        xsdPath = 'inputs/output_compito4.xsd'
         schema = xmlschema.XMLSchema(xsdPath)
         if schema.is_valid(xmlPath):
             tree = ET.ElementTree.parse(source=xmlPath)
             root = tree.getroot()
 
-            diag = loads(b64decode(root.findall('base64')))
+            (reteFA, diag) = loads(b64decode(root.find('base64').text))
 
-        return diag
+        return reteFA, diag
 
 
-if __name__ == '__main1__':
+if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Expr Reg')
     parser.add_argument("compito", type=int, help="Numero del Compito da eseguire", choices=[1, 2, 3, 4, 5])
@@ -2359,26 +2361,26 @@ if __name__ == '__main1__':
     parser.add_argument("-f", "--fileOutput", help="file di input contenente l'outputs di un compito precedente")
 
     args = parser.parse_args()
-    # print(args.ol, args.reteFA)
+    print(args.ol, args.reteFA, args.precedente, args.fileOutput)
 
     if args.compito == 1:
         # controllo validità input
         if args.reteFA is not None:
-            r1, s1 = Main.compito1(args.reteFA, "")
+            s1, r1 = Main.compito1(args.reteFA, "")
+            Main.outputSerializer("compito1", r1, s1, output_path="outputs/")
         else:
             print('rete FA non inserita')
-        print('ciao')
     elif args.compito == 2:
         # controllo validità input
         if args.reteFA is not None:
             if args.ol is not None:
                 ol = args.ol.strip(']["').split(',')
                 r2a, scol = Main.compito2(args.reteFA, ol, "")
+                Main.outputSerializer("compito2", r2a, scol, output_path="outputs/")
             else:
                 print('Osservazione Lineare non inserita')
         else:
             print('rete FA non inserita')
-        print('ciao')
     elif args.compito == 3:
         # controllo validità input
         if not args.precedente:
@@ -2393,25 +2395,26 @@ if __name__ == '__main1__':
                 print('rete FA non inserita')
         elif args.precedente:
             if args.fileOutput is not None:
-                scol, reteFA = Main.fromCompito2(args.fileOutput)
+                reteFA, scol = Main.fromCompito2(args.fileOutput)
                 d3 = Main.compito3(scol, "")
             else:
                 print('percorso file non inserito')
         else:
             print('parametri non validi')
-        print('ciao')
     elif args.compito == 4:
         # controllo validità input
         if not args.precedente:
             if args.reteFA is not None:
                 reteFA, sc = Main.compito1(args.reteFA, "")
                 diagnosticatore4 = Main.compito4(sc, "")
+                Main.outputSerializer("compito4", reteFA, diagnosticatore4, output_path="outputs/")
             else:
                 print('rete FA non inserita')
         elif args.precedente:
             if args.fileOutput is not None:
-                sc, reteFA = Main.fromCompito1(args.fileOutput)
+                reteFA, sc = Main.fromCompito1(args.fileOutput)
                 diagnosticatore4 = Main.compito4(sc, "")
+                #Main.outputSerializer("compito4", reteFA, diagnosticatore4, output_path="outputs/")
             else:
                 print('percorso file non inserito')
         else:
@@ -2431,7 +2434,7 @@ if __name__ == '__main1__':
             if args.fileOutput is not None:
                     if args.ol is not None:
                         ol = args.ol.strip(']["').split(',')
-                        diag = Main.fromCompito4(args.fileOutput)
+                        reteFA, diag = Main.fromCompito4(args.fileOutput)
                         d5 = Main.compito5(diag, ol, "")
                     else:
                         print('Osservazione Lineare non inserita')
@@ -2441,7 +2444,7 @@ if __name__ == '__main1__':
             print('parametri non validi')
 
 # Target di esecuzione per il test dell'output di tutti i compiti
-if __name__ == '__main__':
+if __name__ == '__mainF__':
     xmlPath = 'inputs/input.xml'
     # ol = ["o3", "o2"]
     # ol = ["o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2"]
