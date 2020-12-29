@@ -1,0 +1,76 @@
+<?xml version='1.1' encoding='UTF-8'?>
+<retefa nome="esempio3">
+
+	<comportamenti>
+		<comportamento nome="C1" statoIniziale="10">
+			<stati>
+				<stato nome="10" />
+				<stato nome="11" />
+			</stati>
+
+			<transizioni>
+				<transizione nome="t1a" stato0="10" stato1="11" osservabilita="" rilevanza="">
+					<eventoNecessario nome="e1" link="L1" />
+				</transizione>
+
+				<transizione nome="t1b" stato0="11" stato1="10" osservabilita="" rilevanza="">
+					<eventoNecessario nome="e2" link="L3" />
+				</transizione>
+				
+				<transizione nome="t1c" stato0="10" stato1="11" osservabilita="" rilevanza="f1">
+				</transizione>
+			</transizioni>
+		</comportamento>
+		
+		<comportamento nome="C2" statoIniziale="20">
+			<stati>
+				<stato nome="20" />
+				<stato nome="21" />
+			</stati>
+
+			<transizioni>
+				<transizione nome="t2a" stato0="20" stato1="21" osservabilita="o1" rilevanza="">
+					<eventiOutput>
+						<evento nome="e1" link="L1" />
+						<evento nome="e3" link="L2" />
+					</eventiOutput>
+				</transizione>
+
+				<transizione nome="t2b" stato0="21" stato1="20" osservabilita="o2" rilevanza="">
+					<eventiOutput>
+						<evento nome="e1" link="L1" />
+					</eventiOutput>
+				</transizione>
+			</transizioni>
+		</comportamento>
+
+		<comportamento nome="C3" statoIniziale="30">
+			<stati>
+				<stato nome="30" />
+				<stato nome="31" />
+			</stati>
+
+			<transizioni>
+				<transizione nome="t3a" stato0="30" stato1="31" osservabilita="" rilevanza="">
+					<eventiOutput>
+						<evento nome="e2" link="L3" />
+					</eventiOutput>
+				</transizione>
+
+				<transizione nome="t3b" stato0="31" stato1="30" osservabilita="" rilevanza="">
+					<eventoNecessario nome="e3" link="L2" />
+				</transizione>
+
+				<transizione nome="t3c" stato0="31" stato1="31" osservabilita="" rilevanza="f3">
+					<eventoNecessario nome="e3" link="L2" />
+				</transizione>
+			</transizioni>
+		</comportamento>
+	</comportamenti>
+
+	<links>
+		<link nome="L1" comp0="C2" comp1="C1" />
+		<link nome="L2" comp0="C2" comp1="C3" />
+		<link nome="L3" comp0="C3" comp1="C1" />
+	</links>
+</retefa>

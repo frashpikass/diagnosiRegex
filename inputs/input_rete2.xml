@@ -1,0 +1,73 @@
+<?xml version='1.1' encoding='UTF-8'?>
+<retefa nome="esempio2">
+
+	<comportamenti>
+		<comportamento nome="S" statoIniziale="0">
+			<stati>
+				<stato nome="0" />
+				<stato nome="1" />
+			</stati>
+
+			<transizioni>
+				<transizione nome="s1" stato0="0" stato1="1" osservabilita="act" rilevanza="">
+					<eventiOutput>
+						<evento nome="op" link="L" />
+					</eventiOutput>
+				</transizione>
+				<transizione nome="s2" stato0="1" stato1="0" osservabilita="sby" rilevanza="">
+					<eventiOutput>
+						<evento nome="cl" link="L" />
+					</eventiOutput>
+				</transizione>
+				<transizione nome="s3" stato0="0" stato1="0" osservabilita="" rilevanza="f1">
+					<eventiOutput>
+						<evento nome="cl" link="L" />
+					</eventiOutput>
+				</transizione>
+				<transizione nome="s4" stato0="1" stato1="0" osservabilita="" rilevanza="f2">
+					<eventiOutput>
+						<evento nome="op" link="L" />
+					</eventiOutput>
+				</transizione>
+			</transizioni>
+		</comportamento>
+
+		<comportamento nome="B" statoIniziale="0">
+			<stati>
+				<stato nome="0" />
+				<stato nome="1" />
+			</stati>
+
+			<transizioni>
+				<transizione nome="b1" stato0="0" stato1="1" osservabilita="opn" rilevanza="">
+					<eventoNecessario nome="op" link="L" />
+				</transizione>
+				<transizione nome="b2" stato0="1" stato1="0" osservabilita="cls" rilevanza="">
+					<eventoNecessario nome="cl" link="L" />
+				</transizione>
+				<transizione nome="b3" stato0="0" stato1="0" osservabilita="" rilevanza="f3">
+					<eventoNecessario nome="op" link="L" />
+				</transizione>
+				<transizione nome="b4" stato0="1" stato1="1" osservabilita="" rilevanza="f4">
+					<eventoNecessario nome="cl" link="L" />
+				</transizione>
+				<transizione nome="b5" stato0="0" stato1="0" osservabilita="nop" rilevanza="">
+					<eventoNecessario nome="cl" link="L" />
+				</transizione>
+				<transizione nome="b6" stato0="1" stato1="1" osservabilita="nop" rilevanza="">
+					<eventoNecessario nome="op" link="L" />
+				</transizione>
+				<transizione nome="b7" stato0="0" stato1="1" osservabilita="opn" rilevanza="f5">
+					<eventoNecessario nome="op" link="L" />
+				</transizione>
+				<transizione nome="b8" stato0="1" stato1="0" osservabilita="cls" rilevanza="f6">
+					<eventoNecessario nome="op" link="L" />
+				</transizione>
+			</transizioni>
+		</comportamento>
+	</comportamenti>
+
+	<links>
+		<link nome="L" comp0="S" comp1="B" />
+	</links>
+</retefa>
