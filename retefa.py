@@ -63,9 +63,19 @@ class Transizione(object):
         self.osservabilita = osservabilita
         self.rilevanza = rilevanza
 
+    def strEventiInputOutput(self):
+        """
+        Genera per la transizione corrente la stringa che descrive gli eventi in ingresso e uscita
+        :return: stringa di eventi in input e output
+        """
+        eventi_out = "" + " ".join([str(e) for e in self.eventiOutput])
+        if eventi_out != "":
+            eventi_out = f"/{{{eventi_out}}}"
+        out = f"{str(self.eventoNecessario) if self.eventoNecessario else ''}{eventi_out}"
+        return out
+
     def __str__(self):
-        return self.nome + ": " + self.stato0.nome + "->" + self.stato1.nome + ", " + str(
-            self.eventoNecessario) + "/" + str([str(x) for x in self.eventiOutput])
+        return self.nome + ": " + self.stato0.nome + "->" + self.stato1.nome + ", " + self.strEventiInputOutput()
 
 
 class Stato(object):
@@ -407,31 +417,50 @@ class ReteFA:
         transizioni = ""
         links = ""
         eventi = ""
-        nodi = "start[shape=\"circle\"]"
-        archi = f"start\t->\tn{self.nodoIniziale.nome}"
 
-        n: Nodo
-        for n in self.nodi:
-            stati = " ".join([stato.nome for stato in n.stati])
-            links = " ".join(str(link) for link in n.contenutoLink)
-            finale = 'peripheries=2' if n.isFinale else ''
-            # Compilo i nodi
-            nodi += f"\n\tn{n.nome} [label=<<b>{n.nome}</b><br/>{stati} {links}> {finale}]"
-            a: Arco
-            for a in n.archiUscenti:
-                transizione = a.transizione.nome if a.transizione else ''
-                osservabilita = f" <font color=\"green4\">{a.osservabilita}</font>" if a.osservabilita != "" else ""
-                rilevanza = f" <font color=\"red\">{a.rilevanza}</font>" if a.rilevanza != "" else ""
-                # Compilo gli archi
-                archi += f"\n\tn{n.nome}\t->\tn{a.nodo1.nome} [label=<{transizione}{osservabilita}{rilevanza}>]"
+        comp = []
+        c: Comportamento
+        for c in self.comportamenti:
+            label = "\n\t\t".join([f"<b>{c.nome}</b>"]
+                                  + [f"<br/>{t.nome}: {t.strEventiInputOutput()}" for t in c.transizioni])
 
-        # Compilo l'outputs
-        out = f"""digraph SpazioComportamentale {{
-    // NODI
-    {nodi}
+            stati = "\n\t\t".join([f"c{c.nome}_start [style=invis]"]
+                                  + [f"c{c.nome}_{s.nome} [label=<<b>{s.nome}</b>>]" for s in c.stati])
 
-    // ARCHI
-    {archi}
+            trans = [f"c{c.nome}_start -> c{c.nome}_{c.statoIniziale.nome}"]
+            s: Stato
+            for s in c.stati:
+                for t in s.transizioniUscenti:
+                    osservabilita = f"<br/><font color=\"green4\">{t.osservabilita}</font>" if t.osservabilita != "" else ""
+                    rilevanza = f"<br/><font color=\"red\">{t.rilevanza}</font>" if t.rilevanza != "" else ""
+                    trans.append(f"c{c.nome}_{t.stato0.nome} -> c{c.nome}_{t.stato1.nome} [label=<{t.nome}{osservabilita}{rilevanza}>]")
+            transizioni = "\n\t\t".join(trans)
+
+            comportamento = f"""subgraph cluster_{c.nome} {{
+        node [shape=ellipse]
+        label = <{label}>
+        
+        // Transizioni
+        {transizioni}
+
+        // Stati
+        {stati}
+    }}"""
+            comp.append(comportamento)
+        # Fine for sui comportamenti
+        comportamenti = "\n\n\t".join(comp)
+
+        links = "\n\t".join([f"c{li.comportamento0.nome}_start -> c{li.comportamento1.nome}_start [label=\"{li.nome}\" ltail=cluster_{li.comportamento0.nome} lhead=cluster_{li.comportamento1.nome}]" for li in self.links])
+
+        # Compilo l'output
+        out = f"""digraph ReteFA {{
+    graph [compound=true]
+    node [shape=record]
+    // LINKS
+    {links}
+
+    // COMPORTAMENTI
+    {comportamenti}
 }}
 """
         return out
@@ -2150,12 +2179,14 @@ class Main():
 
         # t.write(filename, encoding="utf-8")
         with open(filename + ".xml", 'wb') as fileXML, \
-                open(filename + ".gv", 'w', encoding="utf-8") as fileDOT:
+                open(filename + ".gv", 'w', encoding="utf-8") as fileDOT, open(filename + "_rete.gv", 'w', encoding="utf-8") as fileDOTRete:
             t.write(fileXML, encoding="utf-8", short_empty_elements=False)
             fileDOT.write(dotgraph)
+            fileDOTRete.write(rete.makeDotGraph())
 
         try:
             subprocess.call(f"dot -Tpng {filename}.gv -o {filename}.png")
+            subprocess.call(f"dot -Tpng {filename}_rete.gv -o {filename}_rete.png")
         except Exception as fnf:
             print(fnf+"Forse graphviz non è installato ed impostato nella variabile PATH di sistema... vedi "
                       "https://graphviz.org/download/")
