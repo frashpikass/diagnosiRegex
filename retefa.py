@@ -519,10 +519,13 @@ class Nodo:
         # todo: forse ci converrebbe definire gli stati come fossero un set? Quanto ci costa il cast a set?
         # todo: rivedere questo eq - il confronto di uguaglianza così va bene solo fino a Compito 3. == non farà mai più il confronto per riferimento!
         other: Nodo
-        return self.indiceOsservazione == other.indiceOsservazione \
-               and self.isFinale == other.isFinale \
-               and set(self.stati) == set(other.stati) \
-               and set(self.contenutoLink) == set(other.contenutoLink)
+        if other:
+            return self.indiceOsservazione == other.indiceOsservazione \
+                   and self.isFinale == other.isFinale \
+                   and set(self.stati) == set(other.stati) \
+                   and set(self.contenutoLink) == set(other.contenutoLink)
+        else:
+            return False
 
     def __str__(self):
         out = f"Nome: {self.nome}, Stati:"
@@ -2351,7 +2354,7 @@ class Main():
         return reteFA, diag
 
 
-if __name__ == '__main__':
+if __name__ == '__main1__':
 
     parser = argparse.ArgumentParser(description='Expr Reg')
     parser.add_argument("compito", type=int, help="Numero del Compito da eseguire", choices=[1, 2, 3, 4, 5])
@@ -2444,11 +2447,13 @@ if __name__ == '__main__':
             print('parametri non validi')
 
 # Target di esecuzione per il test dell'output di tutti i compiti
-if __name__ == '__mainF__':
-    xmlPath = 'inputs/input.xml'
+if __name__ == '__main__':
+    # xmlPath = 'inputs/input.xml'
+    xmlPath = 'inputs/input_rete2.xml'
     # ol = ["o3", "o2"]
     # ol = ["o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2"]
-    ol = ["o3", "o2", "o3", "o2"]
+    # ol = ["o3", "o2", "o3", "o2"]
+    ol = ["act", "sby", "nop"]
 
     # Test Output Compito 1
     r1, s1 = Main.compito1(xmlPath, "")
