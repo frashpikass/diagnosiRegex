@@ -1,0 +1,26 @@
+digraph SpazioComportamentale {
+    // NODI
+    start[shape="circle"]
+	nx0 [label=<<b>x0</b><br/> > peripheries=2]
+	nx1 [label=<<b>x1</b><br/> > ]
+	nx2 [label=<<b>x2</b><br/> > peripheries=2]
+	nx8 [label=<<b>x8</b><br/> > ]
+	nx9 [label=<<b>x9</b><br/> > ]
+	nx11 [label=<<b>x11</b><br/> > ]
+	nx12 [label=<<b>x12</b><br/> > ]
+
+    // ARCHI
+    start	->	nx0
+	nx0	->	nx1 [label=<t3a <font color="green4">o3</font>>]
+	nx1	->	nx2 [label=<t2a <font color="green4">o2</font>>]
+	nx2	->	nx1 [label=<t3a <font color="green4">o3</font> <font color="red">fr</font>>]
+	nx2	->	nx8 [label=<t3a <font color="green4">o3</font>>]
+	nx2	->	nx9 [label=<t3a <font color="green4">o3</font> <font color="red">r</font>>]
+	nx8	->	nx2 [label=<t2a <font color="green4">o2</font> <font color="red">rf</font>>]
+	nx8	->	nx11 [label=<t2a <font color="green4">o2</font> <font color="red">r</font>>]
+	nx9	->	nx2 [label=<t2a <font color="green4">o2</font> <font color="red">f</font>>]
+	nx9	->	nx11 [label=<t2a <font color="green4">o2</font>>]
+	nx11	->	nx12 [label=<t3a <font color="green4">o3</font>>]
+	nx12	->	nx2 [label=<t2a <font color="green4">o2</font> <font color="red">frf</font>>]
+	nx12	->	nx11 [label=<t2a <font color="green4">o2</font> <font color="red">fr</font>>]
+}

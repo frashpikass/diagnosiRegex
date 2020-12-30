@@ -1,0 +1,31 @@
+digraph SpazioComportamentale {
+    // NODI
+    start[shape="circle"]
+	n0 [label=<<b>0</b><br/>0 0 ε(L)> peripheries=2]
+	n1 [label=<<b>1</b><br/>1 0 op(L)> ]
+	n2 [label=<<b>2</b><br/>0 0 cl(L)> ]
+	n3 [label=<<b>3</b><br/>0 1 ε(L)> peripheries=2]
+	n4 [label=<<b>4</b><br/>1 1 op(L)> ]
+	n5 [label=<<b>5</b><br/>0 1 cl(L)> ]
+	n6 [label=<<b>6</b><br/>1 1 ε(L)> peripheries=2]
+	n7 [label=<<b>7</b><br/>1 0 ε(L)> peripheries=2]
+
+    // ARCHI
+    start	->	n0
+	n0	->	n1 [label=<s1 <font color="green4">act</font>>]
+	n0	->	n2 [label=<s3 <font color="red">f1</font>>]
+	n1	->	n6 [label=<b1 <font color="green4">opn</font>>]
+	n1	->	n7 [label=<b3 <font color="red">f3</font>>]
+	n2	->	n0 [label=<b5 <font color="green4">nop</font>>]
+	n2	->	n3 [label=<b7 <font color="green4">opn</font> <font color="red">f5</font>>]
+	n3	->	n4 [label=<s1 <font color="green4">act</font>>]
+	n3	->	n5 [label=<s3 <font color="red">f1</font>>]
+	n4	->	n6 [label=<b6 <font color="green4">nop</font>>]
+	n4	->	n7 [label=<b8 <font color="green4">cls</font> <font color="red">f6</font>>]
+	n5	->	n0 [label=<b2 <font color="green4">cls</font>>]
+	n5	->	n3 [label=<b4 <font color="red">f4</font>>]
+	n6	->	n5 [label=<s2 <font color="green4">sby</font>>]
+	n6	->	n4 [label=<s4 <font color="red">f2</font>>]
+	n7	->	n2 [label=<s2 <font color="green4">sby</font>>]
+	n7	->	n1 [label=<s4 <font color="red">f2</font>>]
+}
