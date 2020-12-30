@@ -24,7 +24,7 @@
 						<evento nome="cl" link="L" />
 					</eventiOutput>
 				</transizione>
-				<transizione nome="s4" stato0="1" stato1="0" osservabilita="" rilevanza="f2">
+				<transizione nome="s4" stato0="1" stato1="1" osservabilita="" rilevanza="f2">
 					<eventiOutput>
 						<evento nome="op" link="L" />
 					</eventiOutput>
@@ -58,7 +58,7 @@
 					<eventoNecessario nome="op" link="L" />
 				</transizione>
 				<transizione nome="b7" stato0="0" stato1="1" osservabilita="opn" rilevanza="f5">
-					<eventoNecessario nome="op" link="L" />
+					<eventoNecessario nome="cl" link="L" />
 				</transizione>
 				<transizione nome="b8" stato0="1" stato1="0" osservabilita="cls" rilevanza="f6">
 					<eventoNecessario nome="op" link="L" />
