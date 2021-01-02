@@ -1205,21 +1205,19 @@ class SpazioComportamentale:
                     scN.setAllIsPotato(False)
 
                     # Definisco la stringa di rilevanza e marchio isPotato sugli archi del parallelo
-                    strRilevanza = ""
-                    hasEps = False
+                    strRilevanza = SpazioComportamentale.componiStrRilevanzaParallelo(parallelo)
                     t: Arco
                     for t in parallelo:
-                        (strRilevanza, hasEps) = SpazioComportamentale.alternativaRilevanza(strRilevanza, t.rilevanza, hasEps)
                         t.isPotato = True
-
-                    # Potiamo solo gli archi segnati come isPotato (i nodi restano inalterati)
-                    # NOTA: questa è una scelta di efficienza, perché non ci sono nodi da potare
-                    scN.potaturaArchi()
 
                     # Creiamo l'arco che sostituisce il parallelo e lo introduciamo in scN
                     a = Arco(parallelo[0].nodo0, parallelo[0].nodo1, None, strRilevanza, osservabilita="")
                     a.isPotato = False
                     scN.addArco(a)
+
+                    # Potiamo solo gli archi segnati come isPotato (i nodi restano inalterati)
+                    # NOTA: questa è una scelta di efficienza, perché non ci sono nodi da potare
+                    scN.potaturaArchi()
                 # Fine analisi parallelo
 
                 else:  # todo: crea un caso di test che finisca qui
@@ -1364,6 +1362,12 @@ class SpazioComportamentale:
         :param aggiunta: la stringa da aggiungere
         :return: la concatenazione delle due stringhe
         """
+        # Se base o aggiunta sono "ε", le converto in ""
+        if base == "ε":
+            base = ""
+        if aggiunta == "ε":
+            aggiunta = ""
+
         ret = ""
         if len(base) > 1 and not SpazioComportamentale.isConcatenazione(base):
             ret += f"({base})"
@@ -1420,6 +1424,12 @@ class SpazioComportamentale:
         :param hasEps: True se base contiene già l'alternativa epsilon
         :return: la coppia (base, hasEps) aggiornate, con base come alternativa di base e aggiunta
         """
+        # Se base o aggiunta sono "ε", le converto in ""
+        if base == "ε":
+            base = ""
+        if aggiunta == "ε":
+            aggiunta = ""
+
         # Elenchiamo le alternative nella stringa base
         alternative = SpazioComportamentale.estraiAlternative(base)
 
@@ -1482,6 +1492,7 @@ class SpazioComportamentale:
         hasEps = False
         for t in parallelo:
             (strRilevanza, hasEps) = SpazioComportamentale.alternativaRilevanza(strRilevanza, t.rilevanza, hasEps)
+        return strRilevanza
 
     def generaDiagnosticatore(self):
         """
@@ -1587,16 +1598,16 @@ class SpazioComportamentale:
             links = " ".join(str(link) for link in n.contenutoLink)
             finale = 'peripheries=2' if n.isFinale else ''
             # Compilo i nodi
-            nodi += f"\n\tn{n.nome} [label=<<b>{n.nome}</b><br/>{stati} {links}> {finale}]"
+            nodi += f"\n\tn{n.nome} [label=<<b>{n.nome}</b><br/>{stati} {links}<br/>Ind. Oss.: {n.indiceOsservazione}> {finale}]"
             a: Arco
             for a in n.archiUscenti:
-                transizione = a.transizione.nome if a.transizione else ''
-                osservabilita = f" <font color=\"green4\">{a.osservabilita}</font>" if a.osservabilita != "" else ""
-                rilevanza = f" <font color=\"red\">{a.rilevanza}</font>" if a.rilevanza != "" else ""
+                transizione = "<br/>" + a.transizione.nome if a.transizione else ''
+                osservabilita = f"<br/><font color=\"green4\">{a.osservabilita}</font>" if a.osservabilita != "" else ""
+                rilevanza = f"<br/><font color=\"red\">{a.rilevanza}</font>" if a.rilevanza != "" else ""
                 # Compilo gli archi
                 archi += f"\n\tn{n.nome}\t->\tn{a.nodo1.nome} [label=<{transizione}{osservabilita}{rilevanza}>]"
 
-        # Compilo l'outputs
+        # Compilo l'output
         out = f"""digraph SpazioComportamentale {{
     // NODI
     {nodi}
@@ -1748,7 +1759,7 @@ class Chiusura(SpazioComportamentale):
         # ai nodi della chiusura in input ai nodi della chiusura clonata
         nodiClone2Origin: Dict[int, Nodo]
         nodiClone2Origin = {}
-        for i in range(1, len(self.nodi)):
+        for i in range(0, len(self.nodi)):
             # l'uso di i sui nodi paralleli mantiene correttamente la corrispondenza dei nodi fra la chiusura
             # e il suo clone perché le liste sono ordinate
             nodiClone2Origin[id(scN.nodi[i])] = self.nodi[i]
@@ -1788,7 +1799,6 @@ class Chiusura(SpazioComportamentale):
             n0 = scN.nodoIniziale
 
         # 6: Inizializziamo nq, nodo finale di scN
-        # Creiamo il nodo n0, nodo iniziale di scN
         nq = Nodo()
         nq.nome = "nq"
         nq.isPotato = False
@@ -1921,6 +1931,9 @@ class Chiusura(SpazioComportamentale):
                     # Resettiamo isPotato per tutti gli archi e tutti i nodi di scN
                     scN.setAllIsPotato(False)
 
+                    # Definisco la stringa di rilevanza
+                    strRilevanza = SpazioComportamentale.componiStrRilevanzaParallelo(parallelo)
+
                     # Creiamo l'arco che sostituisce il parallelo
                     a = Arco(nodo0=parallelo[0].nodo0, nodo1=parallelo[0].nodo1, transizione=None,
                              rilevanza=strRilevanza, osservabilita="")
@@ -1932,9 +1945,7 @@ class Chiusura(SpazioComportamentale):
                     if id(parallelo[0]) in pedici:
                         pedici[id(a)] = pedici[id(parallelo[0])]
 
-                    # Definisco la stringa di rilevanza e marchio isPotato sugli archi del parallelo
-                    strRilevanza = SpazioComportamentale.componiStrRilevanzaParallelo(parallelo)
-
+                    # Marchio isPotato sugli archi del parallelo
                     for t in parallelo:
                         # Definisco quali archi paralleli potare
                         t.isPotato = True
@@ -2051,7 +2062,8 @@ class Chiusura(SpazioComportamentale):
                 # Traduco il riferimento al nodo che è il pedice dell'arco, in modo da avere il nodo (pedice)
                 # corrispondente nella chiusura di partenza.
                 # Alla decorazione di tale nodo, per questa chiusura, associo la rilevanza dell'arco decorato
-                self.decorazioni[id(nodiClone2Origin[id(pedice_arco)])] = arco.rilevanza
+                nodo_orig = nodiClone2Origin[id(pedice_arco)]
+                self.decorazioni[id(nodo_orig)] = arco.rilevanza
 
         # Calcoliamo anche la diagnosi della chiusura come
         # l'alternativa delle decorazioni relative agli stati finali della chiusura
@@ -2449,11 +2461,14 @@ if __name__ == '__main1__':
 # Target di esecuzione per il test dell'output di tutti i compiti
 if __name__ == '__main__':
     # xmlPath = 'inputs/input.xml'
-    xmlPath = 'inputs/input_rete2.xml'
+    # xmlPath = 'inputs/input_rete2.xml'
+    xmlPath = 'inputs/input_rete3.xml'
     # ol = ["o3", "o2"]
     # ol = ["o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2"]
     # ol = ["o3", "o2", "o3", "o2"]
-    ol = ["act", "sby", "nop"]
+    # ol = ["act", "sby", "nop"]
+    # ol = ["o1","o2","o1"]
+    ol = ["o1"]
 
     # Test Output Compito 1
     r1, s1 = Main.compito1(xmlPath, "")
