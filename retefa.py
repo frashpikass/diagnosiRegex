@@ -2367,7 +2367,7 @@ class Main():
         return reteFA, diag
 
 
-if __name__ == '__main__':
+if __name__ == '__main1__':
 
     parser = argparse.ArgumentParser(description='Expr Reg')
     parser.add_argument("compito", type=int, help="Numero del Compito da eseguire", choices=[1, 2, 3, 4, 5])
@@ -2468,15 +2468,19 @@ if __name__ == '__main__':
     print(f"Tempo di esecuzione: {elapsed}")
 
 # Target di esecuzione per il test dell'output di tutti i compiti
-if __name__ == '__mainf__':
-    xmlPath = 'inputs/input.xml'
-    # xmlPath = 'inputs/input_rete2.xml'
-    #xmlPath = 'inputs/input_rete3.xml'
-    ol = ["o3", "o2"]
+if __name__ == '__main__':
+    # xmlPath = 'inputs/input.xml'
+    # ol = ["o3", "o2"]
+    # ol = ["o3", "o2", "o3", "o2"]
     # ol = ["o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2"]
     # ol = ["o3", "o2", "o3", "o2"]
     # ol = ["act", "sby", "nop"]
     # ol = ["o1","o2","o1"]
+
+    xmlPath = 'inputs/input_rete2.xml'
+    ol = ["act", "sby", "nop"]
+
+    # xmlPath = 'inputs/input_rete3.xml'
     # ol = ["o1"]
 
     # Test Output Compito 1

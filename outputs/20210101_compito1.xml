@@ -1,0 +1,32 @@
+<compito1><spazioComportamentale>'digraph SpazioComportamentale {
+    // NODI
+    start[shape="circle"]
+	n0 [label=&lt;&lt;b&gt;0&lt;/b&gt;&lt;br/&gt;0 0 ε(L)&gt; peripheries=2]
+	n1 [label=&lt;&lt;b&gt;1&lt;/b&gt;&lt;br/&gt;1 0 op(L)&gt; ]
+	n2 [label=&lt;&lt;b&gt;2&lt;/b&gt;&lt;br/&gt;0 0 cl(L)&gt; ]
+	n3 [label=&lt;&lt;b&gt;3&lt;/b&gt;&lt;br/&gt;0 1 ε(L)&gt; peripheries=2]
+	n4 [label=&lt;&lt;b&gt;4&lt;/b&gt;&lt;br/&gt;1 1 op(L)&gt; ]
+	n5 [label=&lt;&lt;b&gt;5&lt;/b&gt;&lt;br/&gt;0 1 cl(L)&gt; ]
+	n6 [label=&lt;&lt;b&gt;6&lt;/b&gt;&lt;br/&gt;1 1 ε(L)&gt; peripheries=2]
+	n7 [label=&lt;&lt;b&gt;7&lt;/b&gt;&lt;br/&gt;1 0 ε(L)&gt; peripheries=2]
+
+    // ARCHI
+    start	-&gt;	n0
+	n0	-&gt;	n1 [label=&lt;s1 &lt;font color="green4"&gt;act&lt;/font&gt;&gt;]
+	n0	-&gt;	n2 [label=&lt;s3 &lt;font color="red"&gt;f1&lt;/font&gt;&gt;]
+	n1	-&gt;	n6 [label=&lt;b1 &lt;font color="green4"&gt;opn&lt;/font&gt;&gt;]
+	n1	-&gt;	n7 [label=&lt;b3 &lt;font color="red"&gt;f3&lt;/font&gt;&gt;]
+	n2	-&gt;	n0 [label=&lt;b5 &lt;font color="green4"&gt;nop&lt;/font&gt;&gt;]
+	n2	-&gt;	n3 [label=&lt;b7 &lt;font color="green4"&gt;opn&lt;/font&gt; &lt;font color="red"&gt;f5&lt;/font&gt;&gt;]
+	n3	-&gt;	n4 [label=&lt;s1 &lt;font color="green4"&gt;act&lt;/font&gt;&gt;]
+	n3	-&gt;	n5 [label=&lt;s3 &lt;font color="red"&gt;f1&lt;/font&gt;&gt;]
+	n4	-&gt;	n6 [label=&lt;b6 &lt;font color="green4"&gt;nop&lt;/font&gt;&gt;]
+	n4	-&gt;	n7 [label=&lt;b8 &lt;font color="green4"&gt;cls&lt;/font&gt; &lt;font color="red"&gt;f6&lt;/font&gt;&gt;]
+	n5	-&gt;	n0 [label=&lt;b2 &lt;font color="green4"&gt;cls&lt;/font&gt;&gt;]
+	n5	-&gt;	n3 [label=&lt;b4 &lt;font color="red"&gt;f4&lt;/font&gt;&gt;]
+	n6	-&gt;	n5 [label=&lt;s2 &lt;font color="green4"&gt;sby&lt;/font&gt;&gt;]
+	n6	-&gt;	n4 [label=&lt;s4 &lt;font color="red"&gt;f2&lt;/font&gt;&gt;]
+	n7	-&gt;	n2 [label=&lt;s2 &lt;font color="green4"&gt;sby&lt;/font&gt;&gt;]
+	n7	-&gt;	n1 [label=&lt;s4 &lt;font color="red"&gt;f2&lt;/font&gt;&gt;]
+}
+'</spazioComportamentale><commento>test</commento><base64>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</base64></compito1>
