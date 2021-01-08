@@ -1,7 +1,7 @@
 """
 File di descrizione degli elementi della struttura dati in input.
 """
-from functools import singledispatchmethod, singledispatch
+from functools import singledispatchmethod
 from typing import List, Dict
 import xmlschema
 import copy
@@ -651,6 +651,10 @@ class Arco:
 
 
 class SpazioComportamentale:
+    ## VARIABILI DEBUG ##
+    debug_counter = 1
+    debug_output_path = 'outputs/debug'
+
     def __init__(self):
         self.nodi: List[Nodo]
         self.archi: List[Arco]
@@ -982,13 +986,13 @@ class SpazioComportamentale:
         self.decidiPotatura()
 
         # Effettua potatura e ridenominazione dei nodi
-        # Inizializza il numero univoco dei nodi
-        counter = 0
 
         # Elimina nodi e archi da potare
         self.potatura()
 
         # Rinomina i nodi non potati
+        # Inizializza il numero univoco dei nodi
+        counter = 0
         for nodo in self.nodi:
             nodo.nome = str(counter)
             counter = counter + 1
@@ -1092,10 +1096,21 @@ class SpazioComportamentale:
         for nodo in self.nodi:
             nodo.isPotato = isPotato
 
-    def espressioneRegolare(self) -> str:
+    def debugPrintDotGraph(self, debug_on):
+        """
+        Stampa lo spazio comportamentale nella cartella degli output di debug, se il debug è attivo
+        :param debug_on: True se il debug è attivo
+        """
+        if debug_on:
+            Main.printDotGraph(self.makeDotGraph(),
+                               f"{SpazioComportamentale.debug_output_path}/{str(SpazioComportamentale.debug_counter).zfill(4)}_expreg")
+            SpazioComportamentale.debug_counter += 1
+
+    def espressioneRegolare(self, debug_on=True) -> str:
         """
         Genera la diagnosi (espressione regolare) relativa a uno SpazioComportamentale semplificando archi in serie,
         in parallelo e cappi.
+        :param debug_on: True per generare informazioni di debug
         :return: L'espressione regolare è la stringa di rilevanza dell'unico arco rimasto dopo la semplificazione
         """
         # Cloniamo questo Spazio Comportamentale nell'automa scN
@@ -1165,6 +1180,11 @@ class SpazioComportamentale:
             nq = statiAccettazione[0]
         # Fine della creazione degli stati unici n0 e nq
 
+        # DEBUG
+        # Stampo il grafo a seguito della generazione dei nodi n0 e nq
+        scN.debugPrintDotGraph(debug_on)
+        # /DEBUG
+
         # Definizione dell'espressione regolare
         while len(scN.archi) > 1:
             # Esiste una serie di archi fra due nodi?
@@ -1189,6 +1209,11 @@ class SpazioComportamentale:
                     if arco.nodo1 is not nodoFineSerie:
                         arco.nodo1.isPotato = True
 
+                # DEBUG
+                # Stampo il grafo prima della potatura
+                scN.debugPrintDotGraph(debug_on)
+                # /DEBUG
+
                 # Elimino nodi e archi indicati come isPotato == True
                 scN.potatura()
 
@@ -1210,6 +1235,11 @@ class SpazioComportamentale:
                     for t in parallelo:
                         t.isPotato = True
 
+                    # DEBUG
+                    # Stampo il grafo prima della potatura
+                    scN.debugPrintDotGraph(debug_on)
+                    # /DEBUG
+
                     # Creiamo l'arco che sostituisce il parallelo e lo introduciamo in scN
                     a = Arco(parallelo[0].nodo0, parallelo[0].nodo1, None, strRilevanza, osservabilita="")
                     a.isPotato = False
@@ -1220,7 +1250,7 @@ class SpazioComportamentale:
                     scN.potaturaArchi()
                 # Fine analisi parallelo
 
-                else:  # todo: crea un caso di test che finisca qui
+                else:
                     # Non c'è neanche il parallelo.
                     # Esiste un nodo intermedio con tanti archi in/out e dei cappi?
 
@@ -1239,21 +1269,23 @@ class SpazioComportamentale:
 
                     # Se tale nodo  intermedio esiste, studiamo i suoi cappi
                     if nodoIntermedio is not None:
-                        # Esiste un cappio su nodoIntermedio? Creo la sua stringa di rilevanza
-                        # NOTA: Costruire la stringa qui ci consente di risparmiare cicli
-                        strRilevanzaCappio = ""
-                        cappio: Arco
-                        for cappio in nodoIntermedio.archiUscenti:
-                            if cappio.nodo1 is nodoIntermedio:
-                                if len(cappio.rilevanza) == 1:
-                                    strRilevanzaCappio = cappio.rilevanza + "*"
-                                elif len(cappio.rilevanza) > 1:
-                                    strRilevanzaCappio = "(" + cappio.rilevanza + ")*"
+                        # Esiste un cappio su nodoIntermedio? Lo rintraccio
+                        cappio = None
+                        k: Arco
+                        for k in nodoIntermedio.archiUscenti:
+                            if k.nodo1 is nodoIntermedio:
+                                cappio = k
                                 break
 
                         # Marchiamo il nodoIntermedio come da potare
                         nodoIntermedio.isPotato = True
 
+                        # DEBUG
+                        # Stampo il grafo prima della potatura
+                        scN.debugPrintDotGraph(debug_on)
+                        # /DEBUG
+
+                        # Ora posso rimuovere nodoIntermedio e tutti i suoi vecchi archi entranti e uscenti
                         # Ciclo sugli archi entranti a nodoIntermedio, eccetto i cappi
                         arcoEntrante: Arco
                         for arcoEntrante in scN.archi:
@@ -1263,23 +1295,28 @@ class SpazioComportamentale:
                                 for arcoUscente in nodoIntermedio.archiUscenti:
                                     if arcoUscente.nodo1 is not nodoIntermedio:
                                         # Costruisco la stringa di rilevanza tenendo conto dell'eventuale cappio
-                                        strRilevanzaFinale = arcoEntrante.rilevanza + strRilevanzaCappio + arcoUscente.rilevanza
-
+                                        strRilevanzaFinale = SpazioComportamentale.componiStrRilevanzaNodoIntermedio(
+                                            arcoEntrante, cappio, arcoUscente)
                                         # Per ciascuna coppia di archi entrante/uscente su nodoIntermedio
                                         # inseriamo un nuovo arco che tenga conto della presenza o meno di
                                         # un cappio su nodoIntermedio
-                                        a = Arco(arcoEntrante.nodo0, arcoUscente.nodo1, None, strRilevanzaFinale,
-                                                 osservabilita="")
+                                        a = Arco(nodo0=arcoEntrante.nodo0, nodo1=arcoUscente.nodo1, transizione=None,
+                                                 rilevanza=strRilevanzaFinale, osservabilita="")
                                         a.isPotato = False
                                         # Introduco il nuovo arco
                                         scN.addArco(a)
                                     # Fine If coppia di archi su nodoIntermedio (non cappio)
-                        # Ora posso rimuovere nodoIntermedio e tutti i suoi vecchi archi entranti e uscenti
                         scN.potatura()
                     # Fine if nodoIntermedio is not none
                 # Fine analisi nodo intermedio/cappi
             # Fine analisi parallelo e nodo intermedio/cappi
         # Fine while costruzione espressione regolare
+        # DEBUG
+        # Stampo il grafo
+        scN.debugPrintDotGraph(debug_on)
+        # Resetto il debug counter
+        SpazioComportamentale.debug_counter = 1
+        # /DEBUG
 
         # L'espressione regolare è la stringa di rilevanza
         # dell'unico arco rimasto in scN
@@ -1337,24 +1374,6 @@ class SpazioComportamentale:
         nodoIngresso.chiusura.espressioniRegolari()
 
     @staticmethod
-    def isConcatenazione(s: str) -> bool:
-        """
-        Ritorna True se la stringa in ingresso rappresenta una concatenazione
-        :param s: la stringa da valutare
-        :return: True se la stringa in ingresso rappresenta una concatenazione
-        """
-        # Contatore parentesi
-        par = 0
-        for c in s:
-            if c == "|" and par == 0:
-                return False
-            elif c == "(":
-                par += 1
-            elif c == ")":
-                par -= 1
-        return True
-
-    @staticmethod
     def concatenaRilevanza(base: str, aggiunta: str):
         """
         Data una stringa base e una stringa di aggiunta, le concatena secondo la regola di concatenazione delle expreg.
@@ -1362,33 +1381,46 @@ class SpazioComportamentale:
         :param aggiunta: la stringa da aggiungere
         :return: la concatenazione delle due stringhe
         """
-        # Se base o aggiunta sono "ε", le converto in ""
-        if base == "ε":
-            base = ""
-        if aggiunta == "ε":
-            aggiunta = ""
+        # Estraggo le alternative descritte nelle due stringhe
+        alt_base = SpazioComportamentale.estraiAlternative(base)
+        alt_aggiunta = SpazioComportamentale.estraiAlternative(aggiunta)
 
-        ret = ""
-        if len(base) > 1 and not SpazioComportamentale.isConcatenazione(base):
-            ret += f"({base})"
-        else:
-            ret += base
+        # Creo una lista combinata di alternative che applichi la proprietà distributiva
+        # tenendo conto delle stringhe vuote (ε)
+        alternative = []
+        for ab in alt_base:
+            if ab == "ε":
+                ab = ""
+            for aa in alt_aggiunta:
+                if aa == "ε":
+                    aa = ""
+                res = ab + aa
+                if res == "":
+                    res = "ε"
+                alternative.append(res)
+        alternative = set(alternative)
 
-        if len(aggiunta) > 1 and not SpazioComportamentale.isConcatenazione(aggiunta):
-            ret += f"({aggiunta})"
-        else:
-            ret += aggiunta
-
-        return ret
+        # Ritorno la combinazione corretta di alternative
+        if len(alternative) == 1:
+            unica = alternative.pop()
+            if unica == "ε":
+                return ""
+            else:
+                return unica
+        return "|".join(alternative)
 
     @staticmethod
     def estraiAlternative(expreg: str) -> List[str]:
         """
-        Data un'espressione regolare, estrae la lista di espressioni in alternativa
+        Data un'espressione regolare, estrae la lista di espressioni in alternativa (ed eventualmente toglie le parentesi)
         :param expreg: un'espressione regolare
         :return: la lista di espressioni in alternativa
         """
         alternative = []
+
+        # Controlla se l'alternativa è una stringa vuota
+        if expreg == "" or expreg == "ε":
+            return ["ε"]
 
         # Contatore parentesi
         par = 0
@@ -1410,62 +1442,69 @@ class SpazioComportamentale:
                 buffer += c
 
         # Aggiungo alle alternative il residuo del buffer
+        # (ipotizzo che in un'alternativa non compaia mai "" ad indicare l'alternativa vuota, piuttosto che epsilon)
         if buffer != "":
             alternative.append(buffer)
 
-        return alternative
+        # Compongo la lista di alternative e la ritorno
+        return list(set(alternative))
 
     @staticmethod
-    def alternativaRilevanza(base: str, aggiunta: str, hasEps = None) -> (str, bool):
+    def rimuoviParentesi(expreg: str) -> str:
+        # todo: da non includere nello pseudocodice, è inutilizzato
+        """
+        Riceve in ingresso una stringa di expreg e, se ha parentesi inutili attorno a se, le rimuove
+        :param expreg: una stringa di expreg
+        :return: input senza le parentesi se possibile, altrimenti l'input originale
+        """
+        # Le parentesi vanno tolte quando
+        # - expreg ha parentesi a inizio e fine
+        # e
+        # - expreg senza parentesi ha un bilancio delle parentesi pari a 0
+
+        if expreg[0] == '(' and expreg[-1] == ')':
+            inner = expreg[1:-1]
+            # se la stringa inizia e finisce con una parentesi
+            # fai il bilancio delle parentesi fra la coppia di parentesi più esterne
+            par = 0
+            for c in expreg[1:-1]:
+                if c == "(":
+                    par += 1
+                elif c == ")":
+                    par -= 1
+            # se il bilancio di parentesi aperte e chiuse è 0, ritorna la parte interna
+            if par == 0:
+                return inner
+        # In caso non ci siano le condizioni per l'analisi delle parentesi, ritorna l'espressione regolare originale
+        return expreg
+
+    @staticmethod
+    def alternativaRilevanza(base: str, aggiunta: str) -> str:
         """
         Data una stringa base e una stringa di aggiunta, compone l'alternativa delle due stringhe
         :param base: la stringa base
         :param aggiunta: la stringa di aggiunta
-        :param hasEps: True se base contiene già l'alternativa epsilon
         :return: la coppia (base, hasEps) aggiornate, con base come alternativa di base e aggiunta
         """
-        # Se base o aggiunta sono "ε", le converto in ""
-        if base == "ε":
-            base = ""
-        if aggiunta == "ε":
-            aggiunta = ""
 
-        # Elenchiamo le alternative nella stringa base
-        alternative = SpazioComportamentale.estraiAlternative(base)
+        # IDEA:
+        # 1 trasformare base e aggiunta in liste di alternative
+        # 2 inserire in una lista tutte le alternative, ma senza duplicati (tipo set union)
+        # 3 compilare la lista in una stringa di alternativa classica
 
-        if hasEps is None:
-            # Verifica se base contiene epsilon
-            if base == "":
-                hasEps = False
-            elif SpazioComportamentale.isConcatenazione(base):
-                hasEps = False
+        alt_base = SpazioComportamentale.estraiAlternative(base)
+        alt_aggiunta = SpazioComportamentale.estraiAlternative(aggiunta)
+        alternative = set(alt_base).union(set(alt_aggiunta))
+
+        # Ritorno la combinazione corretta di alternative
+        if len(alternative) == 1:
+            unica = alternative.pop()
+            if unica == "ε":
+                return ""
             else:
-                hasEps = "ε" in alternative or "" in alternative
-            # base = "aasasasa"
-            # base = ""
-            # base = "a|b|c"
-            # base = "a|b|c|ε"
-            # base = "a|(bc|d|ε)b|c"
-            # base = "a|(bc|d|ε)|c"
+                return unica
 
-        # Se l'aggiunta è già nelle alternative, non l'aggiungo
-        if aggiunta in alternative:
-            return base, hasEps
-
-        if base != "" and (aggiunta != "" or (aggiunta == "" and not hasEps)):
-            base += "|"
-
-        if aggiunta == "":
-            # Caso: ho incontrato una rilevanza vuota: metto ε sse non c'è già un ε nell'alternativa
-            if not hasEps:
-                base += "ε"
-                hasEps = True
-        else:
-            # Caso: rilevanza non nulla, accodo dopo il |
-            base += aggiunta
-
-        return base, hasEps
-
+        return "|".join(alternative)
 
     @staticmethod
     def componiStrRilevanzaSerie(serie: List[Arco]) -> str:
@@ -1488,11 +1527,76 @@ class SpazioComportamentale:
         :param parallelo: la lista di archi in parallelo da cui ricavare la stringa di rilevanza
         :return: la stringa di rilevanza del parallelo
         """
-        strRilevanza = ""
-        hasEps = False
-        for t in parallelo:
-            (strRilevanza, hasEps) = SpazioComportamentale.alternativaRilevanza(strRilevanza, t.rilevanza, hasEps)
-        return strRilevanza
+        if len(parallelo) == 1:
+            return parallelo[0].rilevanza
+        else:
+            # Genero l'insieme di alternative presenti in tutti i rami del parallelo
+            alternative = []
+            for p in parallelo:
+                alternative += SpazioComportamentale.estraiAlternative(p.rilevanza)
+            alternative = set(alternative)
+
+            # Ritorno la combinazione corretta di alternative
+            if len(alternative) == 1:
+                unica = alternative.pop()
+                if unica == "ε":
+                    return ""
+                else:
+                    return unica
+            return "|".join(alternative)
+
+    @staticmethod
+    def componiStrRilevanzaNodoIntermedio(entrante: Arco, cappio: Arco, uscente: Arco) -> str:
+        """
+        A partire da tre archi su un nodo (uno entrante, un cappio, uno uscente)
+        genera la stringa di rilevanza corrispondente
+        :param entrante: l'arco entrante al nodo intermedio
+        :param cappio: l'eventuale cappio sul nodo intermedio
+        :param uscente: l'arco uscente dal nodo intermedio
+        :return: la stringa di rilevanza sostitutiva del nodo intermedio
+        """
+        # Estraggo le alternative dell'arco entrante
+        if entrante is not None:
+            alt_entrante = SpazioComportamentale.estraiAlternative(entrante.rilevanza)
+        else:
+            alt_entrante = []
+
+        # Se il cappio non è nullo, genero la sua etichetta
+        if cappio and cappio.rilevanza != "" and cappio.rilevanza != "ε":
+            ril_cappio = f"({cappio.rilevanza})*"
+        else:
+            ril_cappio = ""
+
+        # Estraggo le alternative dell'arco uscente
+        if uscente is not None:
+            alt_uscente = SpazioComportamentale.estraiAlternative(uscente.rilevanza)
+        else:
+            alt_uscente = []
+
+        # Distribuisco le alternative dell'arco entrante (concatenate col cappio)
+        # lungo quelle dell'arco uscente tenendo conto delle stringhe vuote (ε)
+        alternative = []
+        for ae in alt_entrante:
+            if ae == "ε":
+                ae = ""
+            for au in alt_uscente:
+                if au == "ε":
+                    au = ""
+                res = ae + ril_cappio + au
+                if res == "":
+                    res = "ε"
+                alternative.append(res)
+        # Creo un set a partire dalle alternative per rimuovere i duplicati
+        alternative = set(alternative)
+
+        # Ritorno la combinazione corretta di alternative
+        if len(alternative) == 1:
+            unica = alternative.pop()
+            if unica == "ε":
+                return ""
+            else:
+                return unica
+        return "|".join(alternative)
 
     def generaDiagnosticatore(self):
         """
@@ -1596,24 +1700,26 @@ class SpazioComportamentale:
         for n in self.nodi:
             stati = " ".join([stato.nome for stato in n.stati])
             links = " ".join(str(link) for link in n.contenutoLink)
-            finale = 'peripheries=2' if n.isFinale else ''
+            finale = ' peripheries=2' if n.isFinale else ''
+            potato = " color=red" if n.isPotato else ""
             # Compilo i nodi
-            nodi += f"\n\tn{n.nome} [label=<<b>{n.nome}</b><br/>{stati} {links}<br/>Ind. Oss.: {n.indiceOsservazione}> {finale}]"
+            nodi += f"\n\tn{n.nome} [label=<<b>{n.nome}</b><br/>{stati} {links}<br/>Ind. Oss.: {n.indiceOsservazione}>{finale}{potato}]"
             a: Arco
             for a in n.archiUscenti:
                 transizione = "<br/>" + a.transizione.nome if a.transizione else ''
                 osservabilita = f"<br/><font color=\"green4\">{a.osservabilita}</font>" if a.osservabilita != "" else ""
                 rilevanza = f"<br/><font color=\"red\">{a.rilevanza}</font>" if a.rilevanza != "" else ""
+                potato = " color=red" if a.isPotato else ""
                 # Compilo gli archi
-                archi += f"\n\tn{n.nome}\t->\tn{a.nodo1.nome} [label=<{transizione}{osservabilita}{rilevanza}>]"
+                archi += f"\n\tn{n.nome}\t->\tn{a.nodo1.nome} [label=<{transizione}{osservabilita}{rilevanza}>{potato}]"
 
         # Compilo l'output
         out = f"""digraph SpazioComportamentale {{
-    // NODI
-    {nodi}
-
     // ARCHI
     {archi}
+
+    // NODI
+    {nodi}
 }}
 """
         return out
@@ -2072,11 +2178,8 @@ class Chiusura(SpazioComportamentale):
         if nodiFinali:
             # La chiusura ha nodi finali
             strDiagnosi = ""
-            hasEps = False
-
             for n in nodiFinali:
-                (strDiagnosi, hasEps) = \
-                    SpazioComportamentale.alternativaRilevanza(strDiagnosi, self.decorazioni.get(id(n), ""), hasEps)
+                strDiagnosi = SpazioComportamentale.alternativaRilevanza(strDiagnosi, self.decorazioni.get(id(n), ""))
 
             # Trascrivo la diagnosi nella chiusura
             self.diagnosi = strDiagnosi
@@ -2120,7 +2223,8 @@ class Diagnosticatore(SpazioComportamentale):
                         # nelle nuove coppie, aggiorna la rilevanza di tale nodo
                         # oppure inserisce la coppia nodo dest, rilevanza
                         if id(arco.nodo1) in coppie_n:
-                            coppie_n[id(arco.nodo1)] = (arco.nodo1, Diagnosticatore.alternativaRilevanza(coppie_n[id(arco.nodo1)][1], r2)[0])
+                            coppie_n[id(arco.nodo1)] = \
+                                (arco.nodo1, Diagnosticatore.alternativaRilevanza(coppie_n[id(arco.nodo1)][1], r2))
                         else:
                             coppie_n[id(arco.nodo1)] = (arco.nodo1, r2)
                         # end if
@@ -2146,10 +2250,10 @@ class Diagnosticatore(SpazioComportamentale):
             # la stringa da ritornare è l'alternativa delle concatenazioni
             # fra le stringhe di rilevanza delle coppie e le diagnosi del
             # nodo corrispondente
-            # todo: crea esempio che finisca in questo caso
-            hasEps = False
+            # todo: crea esempio che finisca in questo caso, al momento nessuna rete finisce qui
             for k_o, (x, r) in coppie.items():
-                (ret, hasEps) = Diagnosticatore.alternativaRilevanza(ret, Diagnosticatore.concatenaRilevanza(r, x.chiusura.diagnosi), hasEps)
+                ret = Diagnosticatore.alternativaRilevanza(
+                    ret, Diagnosticatore.concatenaRilevanza(r, x.chiusura.diagnosi))
 
         # Ritorna la diagnosi lineare
         return ret
@@ -2205,6 +2309,23 @@ class Main():
         except Exception as fnf:
             print(fnf+"Forse graphviz non è installato ed impostato nella variabile PATH di sistema... vedi "
                       "https://graphviz.org/download/")
+
+    @staticmethod
+    def printDotGraph(dotgraph: str, filename: str):
+        """
+        Stampa il grafo espresso in linguaggio dot nel file png col nome dato
+        :param dotgraph: stringa rappresentante il grafo in DOT
+        :param filename: path dove salvare l'immagine
+        """
+        with open(filename + ".gv", 'w', encoding="utf-8") as fileDOT:
+            fileDOT.write(dotgraph)
+        try:
+            subprocess.call(f"dot -Tpng {filename}.gv -o {filename}.png")
+            #os.remove(f"{filename}.gv")
+        except Exception as fnf:
+            print(fnf+" Forse graphviz non è installato ed impostato nella variabile PATH di sistema... vedi "
+                      "https://graphviz.org/download/")
+
 
     @staticmethod
     def compito1(reteFA_xml_path: str, output_path: str) -> (ReteFA, SpazioComportamentale):
@@ -2461,14 +2582,16 @@ if __name__ == '__main1__':
 # Target di esecuzione per il test dell'output di tutti i compiti
 if __name__ == '__main__':
     # xmlPath = 'inputs/input.xml'
-    # xmlPath = 'inputs/input_rete2.xml'
-    xmlPath = 'inputs/input_rete3.xml'
     # ol = ["o3", "o2"]
-    # ol = ["o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2"]
     # ol = ["o3", "o2", "o3", "o2"]
-    # ol = ["act", "sby", "nop"]
+    # ol = ["o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2"]
     # ol = ["o1","o2","o1"]
-    ol = ["o1"]
+
+    xmlPath = 'inputs/input_rete2.xml'
+    ol = ["act", "sby", "nop"]
+
+    # xmlPath = 'inputs/input_rete3.xml'
+    # ol = ["o1"]
 
     # Test Output Compito 1
     r1, s1 = Main.compito1(xmlPath, "")

@@ -1,0 +1,33 @@
+digraph SpazioComportamentale {
+    // ARCHI
+    start	->	nx0
+	nx0	->	nx1 [label=<<br/>s1<br/><font color="green4">act</font>>]
+	nx0	->	nx0 [label=<<br/>b5<br/><font color="green4">nop</font><br/><font color="red">f1</font>>]
+	nx0	->	nx3 [label=<<br/>b7<br/><font color="green4">opn</font><br/><font color="red">f5f1</font>>]
+	nx1	->	nx6 [label=<<br/>b1<br/><font color="green4">opn</font><br/><font color="red">ε|f3(f2f3)*f2</font>>]
+	nx1	->	nx2 [label=<<br/>s2<br/><font color="green4">sby</font><br/><font color="red">f3(f2f3)*</font>>]
+	nx6	->	nx5 [label=<<br/>s2<br/><font color="green4">sby</font>>]
+	nx6	->	nx6 [label=<<br/>b6<br/><font color="green4">nop</font><br/><font color="red">f2</font>>]
+	nx6	->	nx7 [label=<<br/>b8<br/><font color="green4">cls</font><br/><font color="red">f6f2</font>>]
+	nx3	->	nx4 [label=<<br/>s1<br/><font color="green4">act</font><br/><font color="red">f1(f4f1)*f4|ε</font>>]
+	nx3	->	nx0 [label=<<br/>b2<br/><font color="green4">cls</font><br/><font color="red">f1(f4f1)*</font>>]
+	nx4	->	nx6 [label=<<br/>b6<br/><font color="green4">nop</font>>]
+	nx4	->	nx7 [label=<<br/>b8<br/><font color="green4">cls</font><br/><font color="red">f6</font>>]
+	nx7	->	nx2 [label=<<br/>s2<br/><font color="green4">sby</font><br/><font color="red">ε|f2(f3f2)*f3</font>>]
+	nx7	->	nx6 [label=<<br/>b1<br/><font color="green4">opn</font><br/><font color="red">f2(f3f2)*</font>>]
+	nx5	->	nx0 [label=<<br/>b2<br/><font color="green4">cls</font><br/><font color="red">ε|f4(f1f4)*f1</font>>]
+	nx5	->	nx4 [label=<<br/>s1<br/><font color="green4">act</font><br/><font color="red">f4(f1f4)*</font>>]
+	nx2	->	nx0 [label=<<br/>b5<br/><font color="green4">nop</font>>]
+	nx2	->	nx3 [label=<<br/>b7<br/><font color="green4">opn</font><br/><font color="red">f5</font>>]
+
+    // NODI
+    start[shape="circle"]
+	nx0 [label=<<b>x0</b><br/> <br/>Ind. Oss.: 0> peripheries=2]
+	nx1 [label=<<b>x1</b><br/> <br/>Ind. Oss.: 0> peripheries=2]
+	nx6 [label=<<b>x6</b><br/> <br/>Ind. Oss.: 0> peripheries=2]
+	nx3 [label=<<b>x3</b><br/> <br/>Ind. Oss.: 0> peripheries=2]
+	nx4 [label=<<b>x4</b><br/> <br/>Ind. Oss.: 0>]
+	nx7 [label=<<b>x7</b><br/> <br/>Ind. Oss.: 0> peripheries=2]
+	nx5 [label=<<b>x5</b><br/> <br/>Ind. Oss.: 0> peripheries=2]
+	nx2 [label=<<b>x2</b><br/> <br/>Ind. Oss.: 0>]
+}
