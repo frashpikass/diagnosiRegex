@@ -11,6 +11,7 @@ from pickle import dumps, loads
 from base64 import b64encode, b64decode
 from datetime import date
 import subprocess
+import time
 
 ## CLASSI ##
 
@@ -2366,7 +2367,7 @@ class Main():
         return reteFA, diag
 
 
-if __name__ == '__main1__':
+if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Expr Reg')
     parser.add_argument("compito", type=int, help="Numero del Compito da eseguire", choices=[1, 2, 3, 4, 5])
@@ -2377,6 +2378,7 @@ if __name__ == '__main1__':
 
     args = parser.parse_args()
     print(args.ol, args.reteFA, args.precedente, args.fileOutput)
+    t = time.time()
 
     if args.compito == 1:
         # controllo validità input
@@ -2404,6 +2406,7 @@ if __name__ == '__main1__':
                     ol = args.ol.strip(']["').split(',')
                     r2a, scol = Main.compito2(args.reteFA, ol, "")
                     d3 = Main.compito3(scol, "")
+                    print(f"Diagnosi ottenuta da compito 3: {d3}")
                 else:
                     print('Osservazione Lineare non inserita')
             else:
@@ -2412,6 +2415,7 @@ if __name__ == '__main1__':
             if args.fileOutput is not None:
                 reteFA, scol = Main.fromCompito2(args.fileOutput)
                 d3 = Main.compito3(scol, "")
+                print(f"Diagnosi ottenuta da compito 3: {d3}")
             else:
                 print('percorso file non inserito')
         else:
@@ -2443,6 +2447,7 @@ if __name__ == '__main1__':
                     r1, s1 = Main.compito1(args.reteFA, "")
                     diagnosticatore4 = Main.compito4(s1, "")
                     d5 = Main.compito5(diagnosticatore4, ol, "")
+                    print(f"Diagnosi ottenuta da Diagnosticatore: {d5}")
             else:
                 print('rete FA non inserita')
         elif args.precedente:
@@ -2451,6 +2456,7 @@ if __name__ == '__main1__':
                         ol = args.ol.strip(']["').split(',')
                         reteFA, diag = Main.fromCompito4(args.fileOutput)
                         d5 = Main.compito5(diag, ol, "")
+                        print(f"Diagnosi ottenuta da Diagnosticatore: {d5}")
                     else:
                         print('Osservazione Lineare non inserita')
             else:
@@ -2458,17 +2464,20 @@ if __name__ == '__main1__':
         else:
             print('parametri non validi')
 
+    elapsed = time.time() - t
+    print(f"Tempo di esecuzione: {elapsed}")
+
 # Target di esecuzione per il test dell'output di tutti i compiti
-if __name__ == '__main__':
-    # xmlPath = 'inputs/input.xml'
+if __name__ == '__mainf__':
+    xmlPath = 'inputs/input.xml'
     # xmlPath = 'inputs/input_rete2.xml'
-    xmlPath = 'inputs/input_rete3.xml'
-    # ol = ["o3", "o2"]
+    #xmlPath = 'inputs/input_rete3.xml'
+    ol = ["o3", "o2"]
     # ol = ["o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2"]
     # ol = ["o3", "o2", "o3", "o2"]
     # ol = ["act", "sby", "nop"]
     # ol = ["o1","o2","o1"]
-    ol = ["o1"]
+    # ol = ["o1"]
 
     # Test Output Compito 1
     r1, s1 = Main.compito1(xmlPath, "")
