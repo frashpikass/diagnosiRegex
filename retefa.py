@@ -1,17 +1,18 @@
 """
 File di descrizione degli elementi della struttura dati in input.
 """
-from functools import singledispatchmethod, singledispatch
+from functools import singledispatchmethod
 from typing import List, Dict
 import xmlschema
 import copy
-import xml.etree as ET
+import xml.etree.ElementTree as ET
 import argparse
-from pickle import dumps, loads
+from pickle import dumps, loads, dump, load
 from base64 import b64encode, b64decode
-from datetime import date
+from datetime import datetime
 import subprocess
 import time
+import os
 
 ## CLASSI ##
 
@@ -202,7 +203,7 @@ class ReteFA:
 
         # Validazione dell'XML
         if ReteFA.validateXML(xmlPath):
-            tree = ET.ElementTree.parse(source=xmlPath)
+            tree = ET.parse(source=xmlPath)
             root = tree.getroot()
 
             # 0. Costruzione della rete, con l'attributo nome
@@ -240,8 +241,9 @@ class ReteFA:
                     if statoIniziale is not None:
                         comportamento.statoIniziale = statoIniziale
                     else:
-                        raise KeyError(
-                            f'Lo stato iniziale {nomeStatoIniziale} del comportamento {nomeComp} non è stato definito nella rete')
+                        messaggio = f'Lo stato iniziale {nomeStatoIniziale} del comportamento {nomeComp} non è stato definito nella rete'
+                        Log.new("fromXML, KeyError", messaggio)
+                        raise KeyError(messaggio)
 
                     # 5. Aggiunta delle transizioni al comportamento dato (con controllo degli errori)
                     for trans in comp.findall('transizioni/transizione'):
@@ -270,10 +272,13 @@ class ReteFA:
                                         # Costruiamo l'evento necessario alla transizione
                                         eventoNecessario = Buffer(linkEventoNecessario, nomeEventoNecessario)
                                     else:
-                                        raise KeyError(
-                                            f'Il link {nomeLinkEventoNecessario} relativo all\'evento necessario {nomeEventoNecessario} della transizione {nomeTrans} del comportamento {nomeComp} non è stato definito nella rete')
+                                        messaggio = f'Il link {nomeLinkEventoNecessario} relativo all\'evento ' \
+                                                    f'necessario {nomeEventoNecessario} della transizione {nomeTrans}' \
+                                                    f' del comportamento {nomeComp} non è stato definito nella rete'
+                                        Log.new("fromXML, KeyError", messaggio)
+                                        raise KeyError(messaggio)
 
-                                # 7. Aggiunta degli eventi in outputs alla transizione
+                                # 7. Aggiunta degli eventi in output alla transizione
                                 eventiOutput = []
                                 for eo in trans.findall('eventiOutput/evento'):
                                     nomeEventoOutput = eo.attrib['nome']
@@ -282,12 +287,15 @@ class ReteFA:
                                     # Cerchiamo il link nel comportamento
                                     linkEventoOutput = out.findLinkByNome(nomeLinkEventoOutput)
                                     if linkEventoOutput is not None:
-                                        # Costruiamo l'evento outputs e aggiungiamolo alla lista
+                                        # Costruiamo l'evento output e aggiungiamolo alla lista
                                         eventoOutput = Buffer(linkEventoOutput, nomeEventoOutput)
                                         eventiOutput.append(eventoOutput)
                                     else:
-                                        raise KeyError(
-                                            f'Il link {nomeLinkEventoOutput} relativo all\'evento outputs {nomeEventoOutput} della transizione {nomeTrans} del comportamento {nomeComp} non è stato definito nella rete')
+                                        messaggio = f'Il link {nomeLinkEventoOutput} relativo all\'evento output ' \
+                                                    f'{nomeEventoOutput} della transizione {nomeTrans} del ' \
+                                                    f'comportamento {nomeComp} non è stato definito nella rete'
+                                        Log.new("fromXML, KeyError", messaggio)
+                                        raise KeyError()
 
                                 # Se entrambi gli stati della transizione sono presenti,
                                 # aggiungiamo la nuova transizione
@@ -303,13 +311,19 @@ class ReteFA:
 
 
                             else:
-                                raise KeyError(
-                                    f'Lo stato {nomeStato1} della transizione {nomeTrans} non è stato definito nella rete')
+                                messaggio = f'Lo stato {nomeStato1} della transizione {nomeTrans} non è stato ' \
+                                            f'definito nella rete'
+                                Log.new("fromXML, KeyError", messaggio)
+                                raise KeyError(messaggio)
                         else:
-                            raise KeyError(
-                                f'Lo stato {nomeStato0} della transizione {nomeTrans} non è stato definito nella rete')
+                            messaggio = f'Lo stato {nomeStato0} della transizione {nomeTrans} non è stato ' \
+                                        f'definito nella rete'
+                            Log.new("fromXML, KeyError", messaggio)
+                            raise KeyError(messaggio)
                 else:
-                    raise KeyError(f'Il comportamento {nomeComp} non è stato definito nella rete')
+                    messaggio = f'Il comportamento {nomeComp} non è stato definito nella rete'
+                    Log.new("fromXML, KeyError", messaggio)
+                    raise KeyError(messaggio)
 
             # 8. Compilazione delle transizioni uscenti in ciascuno stato
             # Scorriamo i comportamenti della ReteFA
@@ -362,9 +376,13 @@ class ReteFA:
             if comp1 is not None:
                 self.links.append(Link(nome, comp0, comp1))
             else:
-                raise KeyError(f'Il comportamento {nomeComp1} del link {nome} non è stato definito nella rete')
+                messaggio = f'Il comportamento {nomeComp1} del link {nome} non è stato definito nella rete'
+                Log.new("addLink, KeyError", messaggio)
+                raise KeyError(messaggio)
         else:
-            raise KeyError(f'Il comportamento {nomeComp0} del link {nome} non è stato definito nella rete')
+            messaggio = f'Il comportamento {nomeComp0} del link {nome} non è stato definito nella rete'
+            Log.new("addLink, KeyError", messaggio)
+            raise KeyError(messaggio)
 
     def findLinkByNome(self, nome: str) -> Link:
         """
@@ -404,8 +422,10 @@ class ReteFA:
                 if trovata:
                     break
             if not trovata:
-                raise ValueError(f"L'etichetta di osservabilità '{etichetta}' non è presente in nessuna transizione "
-                                 f"della ReteFA inserita.")
+                messaggio = f"L'etichetta di osservabilità '{etichetta}' non è presente in nessuna transizione "\
+                            f"della ReteFA inserita."
+                Log.new("verificaOsservazioneLineare, ValueError", messaggio)
+                raise ValueError(messaggio)
         return True
 
     def makeDotGraph(self) -> str:
@@ -466,8 +486,20 @@ class ReteFA:
 """
         return out
 
+    def logStats(self):
+        """
+        Genera delle statistiche su questa ReteFA e le salva nel Log
+        """
+        Log.new("Statistiche sulla Rete FA", "")
+        Log.new("\tNumero comportamenti", f"{len(self.comportamenti)}")
+        Log.new("\tNumero stati", f"{sum([len(c.stati) for c in self.comportamenti])}")
+        Log.new("\tNumero transizioni", f"{sum([len(c.stati) for c in self.comportamenti])}")
+
 
 class Nodo:
+    """
+    Classe che descrive un nodo in uno SpazioComportamentale
+    """
     def __init__(self):
         self.nome = None
         self.stati = []
@@ -565,7 +597,7 @@ class Nodo:
         # - il contenuto dei buffer dei link coinvolti nella transizione, aggiornato con gli eventi uscenti
         # - il flag isFinale a true se il nodo è finale
 
-        # Inizializziamo il nodo in outputs a questa funzione
+        # Inizializziamo il nodo in output a questa funzione
         # creando un clone del nodo in input, che poi modificheremo in corso d'opera
         # in modo da rispecchiare gli effetti della transizione
         nodoOutput: Nodo
@@ -582,10 +614,10 @@ class Nodo:
                 # procediamo
             else:
                 # La transizione non è fattibile perché manca l'evento necessario
-                # ritorniamo None come nodo outputs
+                # ritorniamo None come nodo output
                 return None
 
-        # 2. Verifichiamo se c'è spazio nel buffer del nodo per gli eventi in outputs
+        # 2. Verifichiamo se c'è spazio nel buffer del nodo per gli eventi in output
 
         # Verifica che i link che saranno riempiti dalla transizione siano scarichi
         # Recuperiamo gli eventi in uscita alla transizione, poi ne verifichiamo la fattibilità
@@ -598,7 +630,7 @@ class Nodo:
 
             # Se il buffer è già pieno
             if bufferOutput.evento != "":
-                # allora la transizione non è fattibile: ritorniamo None come nodo outputs
+                # allora la transizione non è fattibile: ritorniamo None come nodo output
                 return None
             else:
                 # altrimenti dobbiamo inserire l'evento in uscita nei buffer
@@ -618,7 +650,7 @@ class Nodo:
                 nodoOutput.isFinale = False
                 break
 
-        # Dopo averlo costruito e popolato, ritorniamo il nodo outputs generato dalla transizione
+        # Dopo averlo costruito e popolato, ritorniamo il nodo output generato dalla transizione
         return nodoOutput
 
     def cercaContenutoLink(self, link: Link) -> Buffer:
@@ -635,6 +667,9 @@ class Nodo:
 
 
 class Arco:
+    """
+        Classe che descrive un arco in uno SpazioComportamentale
+    """
     def __init__(self, nodo0: Nodo, nodo1: Nodo, transizione: Transizione, rilevanza: str, osservabilita: str):
         self.nodo0 = nodo0
         self.nodo1 = nodo1
@@ -652,6 +687,12 @@ class Arco:
 
 
 class SpazioComportamentale:
+    """
+    Classe che descrive uno Spazio Comportamentale
+    """
+    ## VARIABILI DEBUG ##
+    debug_counter = 1
+
     def __init__(self):
         self.nodi: List[Nodo]
         self.archi: List[Arco]
@@ -886,7 +927,7 @@ class SpazioComportamentale:
 
     def decidiPotatura(self) -> None:
         """
-        Decide dove potare lo Spazio Comportamentale segnando nodi e archi che non portano a stati finali.
+        Decide dove potare lo Spazio Comportamentale segnando come isPotato nodi e archi che non portano a stati finali.
         """
         # precondizione: ogni nuovo nodo e arco ha inizialmente isPotato=true
         self.setAllIsPotato(True)
@@ -969,26 +1010,40 @@ class SpazioComportamentale:
 
     def potaturaRidenominazione(self) -> None:
         """
-        Decide quali nodi e archi potare, li rimuove dallo Spazio Comportamentale e dunque li ridenomina
-        usando un ID progressivo dato dall'ordine di esplorazione
+        Decide quali nodi e archi potare (ovvero quelli che non portano ad un nodo finale), li rimuove dallo Spazio
+        Comportamentale e dunque li ridenomina usando un ID progressivo dato dall'ordine di esplorazione.
 
         :raises ValueError: se lo spazio comportamentale è vuoto prima o dopo la potatura
         """
         # Verifichiamo se ci sono nodi nello spazio comportamentale, in tal caso la potatura non ha senso
         if not self.nodi or not self.archi:
-            raise ValueError("Impossibile procedere con la potatura: lo spazio comportamentale è vuoto. Verificare "
-                             "gli input.")
+            messaggio = "Impossibile procedere con la potatura: lo spazio comportamentale è vuoto. " \
+                        "Verificare gli input."
+            Log.new("potaturaRidenominazione, ValueError", messaggio)
+            raise ValueError(messaggio)
 
         # Decidi quali archi e quali nodi potare
         self.decidiPotatura()
 
         # Effettua potatura e ridenominazione dei nodi
-        # Inizializza il numero univoco dei nodi
-        counter = 0
+        # Logga le stat prima della potatura
+        nodi_pre_potatura = len(self.nodi)
+        archi_pre_potatura = len(self.archi)
 
         # Elimina nodi e archi da potare
         self.potatura()
 
+        # Logga le stat dopo la potatura
+        nodi_post_potatura = len(self.nodi)
+        archi_post_potatura = len(self.archi)
+        Log.new("Potatura e ridenominazione","")
+        Log.new("\tStati potati", f"{nodi_post_potatura-nodi_pre_potatura}")
+        Log.new("\tTransizioni potate", f"{archi_post_potatura - archi_pre_potatura}")
+        Log.new("\tStati dopo la potatura", f"{nodi_post_potatura}")
+        Log.new("\tTransizioni dopo la potatura", f"{archi_post_potatura}")
+
+        # Inizializza il numero univoco dei nodi
+        counter = 0
         # Rinomina i nodi non potati
         for nodo in self.nodi:
             nodo.nome = str(counter)
@@ -1000,7 +1055,9 @@ class SpazioComportamentale:
         # Verifichiamo se ci sono nodi nello spazio comportamentale, in questo caso la potatura è stata totale e
         # potrebbe essere indice di un problema
         if not self.nodi or not self.archi:
-            raise ValueError("La potatura ha generato uno Spazio Comportamentale vuoto. Verificare gli input.")
+            messaggio = "La potatura ha generato uno Spazio Comportamentale vuoto. Verificare gli input."
+            Log.new("potaturaRidenominazione, ValueError", messaggio)
+            raise ValueError(messaggio)
 
     def trovaSerieArchi(self) -> List[Arco]:
         """
@@ -1093,10 +1150,21 @@ class SpazioComportamentale:
         for nodo in self.nodi:
             nodo.isPotato = isPotato
 
-    def espressioneRegolare(self) -> str:
+    def debugPrintDotGraph(self, debug_on, debug_path):
+        """
+        Stampa lo spazio comportamentale nella cartella degli output di debug, se il debug è attivo
+        :param debug_on: True se il debug è attivo
+        """
+        if debug_on:
+            Main.printDotGraph(self.makeDotGraph(),
+                               f"{debug_path}/{str(SpazioComportamentale.debug_counter).zfill(4)}_expreg")
+            SpazioComportamentale.debug_counter += 1
+
+    def espressioneRegolare(self, debug_on=False, debug_path="") -> str:
         """
         Genera la diagnosi (espressione regolare) relativa a uno SpazioComportamentale semplificando archi in serie,
         in parallelo e cappi.
+        :param debug_on: True per generare informazioni di debug (stampa i grafi ad ogni iterazione)
         :return: L'espressione regolare è la stringa di rilevanza dell'unico arco rimasto dopo la semplificazione
         """
         # Cloniamo questo Spazio Comportamentale nell'automa scN
@@ -1166,6 +1234,11 @@ class SpazioComportamentale:
             nq = statiAccettazione[0]
         # Fine della creazione degli stati unici n0 e nq
 
+        # DEBUG
+        # Stampo il grafo a seguito della generazione dei nodi n0 e nq
+        scN.debugPrintDotGraph(debug_on, debug_path)
+        # /DEBUG
+
         # Definizione dell'espressione regolare
         while len(scN.archi) > 1:
             # Esiste una serie di archi fra due nodi?
@@ -1190,6 +1263,11 @@ class SpazioComportamentale:
                     if arco.nodo1 is not nodoFineSerie:
                         arco.nodo1.isPotato = True
 
+                # DEBUG
+                # Stampo il grafo prima della potatura
+                scN.debugPrintDotGraph(debug_on, debug_path)
+                # /DEBUG
+
                 # Elimino nodi e archi indicati come isPotato == True
                 scN.potatura()
 
@@ -1211,6 +1289,11 @@ class SpazioComportamentale:
                     for t in parallelo:
                         t.isPotato = True
 
+                    # DEBUG
+                    # Stampo il grafo prima della potatura
+                    scN.debugPrintDotGraph(debug_on, debug_path)
+                    # /DEBUG
+
                     # Creiamo l'arco che sostituisce il parallelo e lo introduciamo in scN
                     a = Arco(parallelo[0].nodo0, parallelo[0].nodo1, None, strRilevanza, osservabilita="")
                     a.isPotato = False
@@ -1221,7 +1304,7 @@ class SpazioComportamentale:
                     scN.potaturaArchi()
                 # Fine analisi parallelo
 
-                else:  # todo: crea un caso di test che finisca qui
+                else:
                     # Non c'è neanche il parallelo.
                     # Esiste un nodo intermedio con tanti archi in/out e dei cappi?
 
@@ -1240,21 +1323,23 @@ class SpazioComportamentale:
 
                     # Se tale nodo  intermedio esiste, studiamo i suoi cappi
                     if nodoIntermedio is not None:
-                        # Esiste un cappio su nodoIntermedio? Creo la sua stringa di rilevanza
-                        # NOTA: Costruire la stringa qui ci consente di risparmiare cicli
-                        strRilevanzaCappio = ""
-                        cappio: Arco
-                        for cappio in nodoIntermedio.archiUscenti:
-                            if cappio.nodo1 is nodoIntermedio:
-                                if len(cappio.rilevanza) == 1:
-                                    strRilevanzaCappio = cappio.rilevanza + "*"
-                                elif len(cappio.rilevanza) > 1:
-                                    strRilevanzaCappio = "(" + cappio.rilevanza + ")*"
+                        # Esiste un cappio su nodoIntermedio? Lo rintraccio
+                        cappio = None
+                        k: Arco
+                        for k in nodoIntermedio.archiUscenti:
+                            if k.nodo1 is nodoIntermedio:
+                                cappio = k
                                 break
 
                         # Marchiamo il nodoIntermedio come da potare
                         nodoIntermedio.isPotato = True
 
+                        # DEBUG
+                        # Stampo il grafo prima della potatura
+                        scN.debugPrintDotGraph(debug_on, debug_path)
+                        # /DEBUG
+
+                        # Ora posso rimuovere nodoIntermedio e tutti i suoi vecchi archi entranti e uscenti
                         # Ciclo sugli archi entranti a nodoIntermedio, eccetto i cappi
                         arcoEntrante: Arco
                         for arcoEntrante in scN.archi:
@@ -1264,13 +1349,13 @@ class SpazioComportamentale:
                                 for arcoUscente in nodoIntermedio.archiUscenti:
                                     if arcoUscente.nodo1 is not nodoIntermedio:
                                         # Costruisco la stringa di rilevanza tenendo conto dell'eventuale cappio
-                                        strRilevanzaFinale = arcoEntrante.rilevanza + strRilevanzaCappio + arcoUscente.rilevanza
-
+                                        strRilevanzaFinale = SpazioComportamentale.componiStrRilevanzaNodoIntermedio(
+                                            arcoEntrante, cappio, arcoUscente)
                                         # Per ciascuna coppia di archi entrante/uscente su nodoIntermedio
                                         # inseriamo un nuovo arco che tenga conto della presenza o meno di
                                         # un cappio su nodoIntermedio
-                                        a = Arco(arcoEntrante.nodo0, arcoUscente.nodo1, None, strRilevanzaFinale,
-                                                 osservabilita="")
+                                        a = Arco(nodo0=arcoEntrante.nodo0, nodo1=arcoUscente.nodo1, transizione=None,
+                                                 rilevanza=strRilevanzaFinale, osservabilita="")
                                         a.isPotato = False
                                         # Introduco il nuovo arco
                                         scN.addArco(a)
@@ -1281,6 +1366,12 @@ class SpazioComportamentale:
                 # Fine analisi nodo intermedio/cappi
             # Fine analisi parallelo e nodo intermedio/cappi
         # Fine while costruzione espressione regolare
+        # DEBUG
+        # Stampo il grafo
+        scN.debugPrintDotGraph(debug_on, debug_path)
+        # Resetto il debug counter
+        SpazioComportamentale.debug_counter = 1
+        # /DEBUG
 
         # L'espressione regolare è la stringa di rilevanza
         # dell'unico arco rimasto in scN
@@ -1338,24 +1429,6 @@ class SpazioComportamentale:
         nodoIngresso.chiusura.espressioniRegolari()
 
     @staticmethod
-    def isConcatenazione(s: str) -> bool:
-        """
-        Ritorna True se la stringa in ingresso rappresenta una concatenazione
-        :param s: la stringa da valutare
-        :return: True se la stringa in ingresso rappresenta una concatenazione
-        """
-        # Contatore parentesi
-        par = 0
-        for c in s:
-            if c == "|" and par == 0:
-                return False
-            elif c == "(":
-                par += 1
-            elif c == ")":
-                par -= 1
-        return True
-
-    @staticmethod
     def concatenaRilevanza(base: str, aggiunta: str):
         """
         Data una stringa base e una stringa di aggiunta, le concatena secondo la regola di concatenazione delle expreg.
@@ -1363,33 +1436,46 @@ class SpazioComportamentale:
         :param aggiunta: la stringa da aggiungere
         :return: la concatenazione delle due stringhe
         """
-        # Se base o aggiunta sono "ε", le converto in ""
-        if base == "ε":
-            base = ""
-        if aggiunta == "ε":
-            aggiunta = ""
+        # Estraggo le alternative descritte nelle due stringhe
+        alt_base = SpazioComportamentale.estraiAlternative(base)
+        alt_aggiunta = SpazioComportamentale.estraiAlternative(aggiunta)
 
-        ret = ""
-        if len(base) > 1 and not SpazioComportamentale.isConcatenazione(base):
-            ret += f"({base})"
-        else:
-            ret += base
+        # Creo una lista combinata di alternative che applichi la proprietà distributiva
+        # tenendo conto delle stringhe vuote (ε)
+        alternative = []
+        for ab in alt_base:
+            if ab == "ε":
+                ab = ""
+            for aa in alt_aggiunta:
+                if aa == "ε":
+                    aa = ""
+                res = ab + aa
+                if res == "":
+                    res = "ε"
+                alternative.append(res)
+        alternative = set(alternative)
 
-        if len(aggiunta) > 1 and not SpazioComportamentale.isConcatenazione(aggiunta):
-            ret += f"({aggiunta})"
-        else:
-            ret += aggiunta
-
-        return ret
+        # Ritorno la combinazione corretta di alternative
+        if len(alternative) == 1:
+            unica = alternative.pop()
+            if unica == "ε":
+                return ""
+            else:
+                return unica
+        return "|".join(alternative)
 
     @staticmethod
     def estraiAlternative(expreg: str) -> List[str]:
         """
-        Data un'espressione regolare, estrae la lista di espressioni in alternativa
+        Data un'espressione regolare, estrae la lista di espressioni in alternativa (ed eventualmente toglie le parentesi)
         :param expreg: un'espressione regolare
         :return: la lista di espressioni in alternativa
         """
         alternative = []
+
+        # Controlla se l'alternativa è una stringa vuota
+        if expreg == "" or expreg == "ε":
+            return ["ε"]
 
         # Contatore parentesi
         par = 0
@@ -1411,62 +1497,69 @@ class SpazioComportamentale:
                 buffer += c
 
         # Aggiungo alle alternative il residuo del buffer
+        # (ipotizzo che in un'alternativa non compaia mai "" ad indicare l'alternativa vuota, piuttosto che epsilon)
         if buffer != "":
             alternative.append(buffer)
 
-        return alternative
+        # Compongo la lista di alternative e la ritorno
+        return list(set(alternative))
 
     @staticmethod
-    def alternativaRilevanza(base: str, aggiunta: str, hasEps = None) -> (str, bool):
+    def rimuoviParentesi(expreg: str) -> str:
+        # todo: da non includere nello pseudocodice, è inutilizzato
+        """
+        Riceve in ingresso una stringa di expreg e, se ha parentesi inutili attorno a se, le rimuove
+        :param expreg: una stringa di expreg
+        :return: input senza le parentesi se possibile, altrimenti l'input originale
+        """
+        # Le parentesi vanno tolte quando
+        # - expreg ha parentesi a inizio e fine
+        # e
+        # - expreg senza parentesi ha un bilancio delle parentesi pari a 0
+
+        if expreg[0] == '(' and expreg[-1] == ')':
+            inner = expreg[1:-1]
+            # se la stringa inizia e finisce con una parentesi
+            # fai il bilancio delle parentesi fra la coppia di parentesi più esterne
+            par = 0
+            for c in expreg[1:-1]:
+                if c == "(":
+                    par += 1
+                elif c == ")":
+                    par -= 1
+            # se il bilancio di parentesi aperte e chiuse è 0, ritorna la parte interna
+            if par == 0:
+                return inner
+        # In caso non ci siano le condizioni per l'analisi delle parentesi, ritorna l'espressione regolare originale
+        return expreg
+
+    @staticmethod
+    def alternativaRilevanza(base: str, aggiunta: str) -> str:
         """
         Data una stringa base e una stringa di aggiunta, compone l'alternativa delle due stringhe
         :param base: la stringa base
         :param aggiunta: la stringa di aggiunta
-        :param hasEps: True se base contiene già l'alternativa epsilon
         :return: la coppia (base, hasEps) aggiornate, con base come alternativa di base e aggiunta
         """
-        # Se base o aggiunta sono "ε", le converto in ""
-        if base == "ε":
-            base = ""
-        if aggiunta == "ε":
-            aggiunta = ""
 
-        # Elenchiamo le alternative nella stringa base
-        alternative = SpazioComportamentale.estraiAlternative(base)
+        # IDEA:
+        # 1 trasformare base e aggiunta in liste di alternative
+        # 2 inserire in una lista tutte le alternative, ma senza duplicati (tipo set union)
+        # 3 compilare la lista in una stringa di alternativa classica
 
-        if hasEps is None:
-            # Verifica se base contiene epsilon
-            if base == "":
-                hasEps = False
-            elif SpazioComportamentale.isConcatenazione(base):
-                hasEps = False
+        alt_base = SpazioComportamentale.estraiAlternative(base)
+        alt_aggiunta = SpazioComportamentale.estraiAlternative(aggiunta)
+        alternative = set(alt_base).union(set(alt_aggiunta))
+
+        # Ritorno la combinazione corretta di alternative
+        if len(alternative) == 1:
+            unica = alternative.pop()
+            if unica == "ε":
+                return ""
             else:
-                hasEps = "ε" in alternative or "" in alternative
-            # base = "aasasasa"
-            # base = ""
-            # base = "a|b|c"
-            # base = "a|b|c|ε"
-            # base = "a|(bc|d|ε)b|c"
-            # base = "a|(bc|d|ε)|c"
+                return unica
 
-        # Se l'aggiunta è già nelle alternative, non l'aggiungo
-        if aggiunta in alternative:
-            return base, hasEps
-
-        if base != "" and (aggiunta != "" or (aggiunta == "" and not hasEps)):
-            base += "|"
-
-        if aggiunta == "":
-            # Caso: ho incontrato una rilevanza vuota: metto ε sse non c'è già un ε nell'alternativa
-            if not hasEps:
-                base += "ε"
-                hasEps = True
-        else:
-            # Caso: rilevanza non nulla, accodo dopo il |
-            base += aggiunta
-
-        return base, hasEps
-
+        return "|".join(alternative)
 
     @staticmethod
     def componiStrRilevanzaSerie(serie: List[Arco]) -> str:
@@ -1489,11 +1582,76 @@ class SpazioComportamentale:
         :param parallelo: la lista di archi in parallelo da cui ricavare la stringa di rilevanza
         :return: la stringa di rilevanza del parallelo
         """
-        strRilevanza = ""
-        hasEps = False
-        for t in parallelo:
-            (strRilevanza, hasEps) = SpazioComportamentale.alternativaRilevanza(strRilevanza, t.rilevanza, hasEps)
-        return strRilevanza
+        if len(parallelo) == 1:
+            return parallelo[0].rilevanza
+        else:
+            # Genero l'insieme di alternative presenti in tutti i rami del parallelo
+            alternative = []
+            for p in parallelo:
+                alternative += SpazioComportamentale.estraiAlternative(p.rilevanza)
+            alternative = set(alternative)
+
+            # Ritorno la combinazione corretta di alternative
+            if len(alternative) == 1:
+                unica = alternative.pop()
+                if unica == "ε":
+                    return ""
+                else:
+                    return unica
+            return "|".join(alternative)
+
+    @staticmethod
+    def componiStrRilevanzaNodoIntermedio(entrante: Arco, cappio: Arco, uscente: Arco) -> str:
+        """
+        A partire da tre archi su un nodo (uno entrante, un cappio, uno uscente)
+        genera la stringa di rilevanza corrispondente
+        :param entrante: l'arco entrante al nodo intermedio
+        :param cappio: l'eventuale cappio sul nodo intermedio
+        :param uscente: l'arco uscente dal nodo intermedio
+        :return: la stringa di rilevanza sostitutiva del nodo intermedio
+        """
+        # Estraggo le alternative dell'arco entrante
+        if entrante is not None:
+            alt_entrante = SpazioComportamentale.estraiAlternative(entrante.rilevanza)
+        else:
+            alt_entrante = []
+
+        # Se il cappio non è nullo, genero la sua etichetta
+        if cappio and cappio.rilevanza != "" and cappio.rilevanza != "ε":
+            ril_cappio = f"({cappio.rilevanza})*"
+        else:
+            ril_cappio = ""
+
+        # Estraggo le alternative dell'arco uscente
+        if uscente is not None:
+            alt_uscente = SpazioComportamentale.estraiAlternative(uscente.rilevanza)
+        else:
+            alt_uscente = []
+
+        # Distribuisco le alternative dell'arco entrante (concatenate col cappio)
+        # lungo quelle dell'arco uscente tenendo conto delle stringhe vuote (ε)
+        alternative = []
+        for ae in alt_entrante:
+            if ae == "ε":
+                ae = ""
+            for au in alt_uscente:
+                if au == "ε":
+                    au = ""
+                res = ae + ril_cappio + au
+                if res == "":
+                    res = "ε"
+                alternative.append(res)
+        # Creo un set a partire dalle alternative per rimuovere i duplicati
+        alternative = set(alternative)
+
+        # Ritorno la combinazione corretta di alternative
+        if len(alternative) == 1:
+            unica = alternative.pop()
+            if unica == "ε":
+                return ""
+            else:
+                return unica
+        return "|".join(alternative)
 
     def generaDiagnosticatore(self):
         """
@@ -1597,30 +1755,52 @@ class SpazioComportamentale:
         for n in self.nodi:
             stati = " ".join([stato.nome for stato in n.stati])
             links = " ".join(str(link) for link in n.contenutoLink)
-            finale = 'peripheries=2' if n.isFinale else ''
+            finale = ' peripheries=2' if n.isFinale else ''
+            potato = " color=red" if n.isPotato else ""
             # Compilo i nodi
-            nodi += f"\n\tn{n.nome} [label=<<b>{n.nome}</b><br/>{stati} {links}<br/>Ind. Oss.: {n.indiceOsservazione}> {finale}]"
+            nodi += f"\n\tn{n.nome} [label=<<b>{n.nome}</b><br/>{stati} {links}<br/>Ind. Oss.: {n.indiceOsservazione}>{finale}{potato}]"
             a: Arco
             for a in n.archiUscenti:
                 transizione = "<br/>" + a.transizione.nome if a.transizione else ''
                 osservabilita = f"<br/><font color=\"green4\">{a.osservabilita}</font>" if a.osservabilita != "" else ""
                 rilevanza = f"<br/><font color=\"red\">{a.rilevanza}</font>" if a.rilevanza != "" else ""
+                potato = " color=red" if a.isPotato else ""
                 # Compilo gli archi
-                archi += f"\n\tn{n.nome}\t->\tn{a.nodo1.nome} [label=<{transizione}{osservabilita}{rilevanza}>]"
+                archi += f"\n\tn{n.nome}\t->\tn{a.nodo1.nome} [label=<{transizione}{osservabilita}{rilevanza}>{potato}]"
 
         # Compilo l'output
         out = f"""digraph SpazioComportamentale {{
-    // NODI
-    {nodi}
-
     // ARCHI
     {archi}
+
+    // NODI
+    {nodi}
 }}
 """
         return out
 
+    def logStats(self):
+        """
+        Genera delle statistiche su questo Spazio Comportamentale e le salva nel Log
+        """
+        Log.new("Statistiche sullo Spazio Comportamentale", "")
+        Log.new("\tNumero stati", f"{len(self.nodi)}")
+        Log.new("\tNumero stati finali", f"{len([n for n in self.nodi if n.isFinale])}")
+        Log.new("\tNumero transizioni", f"{len(self.archi)}")
+
 
 class Chiusura(SpazioComportamentale):
+    """
+    Classe che descrive una chiusura silenziosa decorata di uno SpazioComportamentale.
+    Una chiusura silenziosa è un particolare spazio comportamentale, associato ad uno stato di uno spazio
+    comportamentale di dimensione maggiore, tale da contenere tutti e soli gli stati raggiungibili attraverso
+    cammini contenenti transizioni non osservabili (silenziose).
+
+    Lo stato di partenza è detto d'ingresso della chiusura.
+
+    A ogni stato (nodo) finale della chiusura è associata una decorazione che rappresenta l'espressione regolare di
+    rilevanza relativa a tutti i cammini che portano dallo stato d'ingresso della chiusura allo stato finale.
+    """
     def __init__(self):
         self.nodiUscita: List[Nodo]
         self.nodiUscita = []
@@ -2073,11 +2253,8 @@ class Chiusura(SpazioComportamentale):
         if nodiFinali:
             # La chiusura ha nodi finali
             strDiagnosi = ""
-            hasEps = False
-
             for n in nodiFinali:
-                (strDiagnosi, hasEps) = \
-                    SpazioComportamentale.alternativaRilevanza(strDiagnosi, self.decorazioni.get(id(n), ""), hasEps)
+                strDiagnosi = SpazioComportamentale.alternativaRilevanza(strDiagnosi, self.decorazioni.get(id(n), ""))
 
             # Trascrivo la diagnosi nella chiusura
             self.diagnosi = strDiagnosi
@@ -2121,7 +2298,8 @@ class Diagnosticatore(SpazioComportamentale):
                         # nelle nuove coppie, aggiorna la rilevanza di tale nodo
                         # oppure inserisce la coppia nodo dest, rilevanza
                         if id(arco.nodo1) in coppie_n:
-                            coppie_n[id(arco.nodo1)] = (arco.nodo1, Diagnosticatore.alternativaRilevanza(coppie_n[id(arco.nodo1)][1], r2)[0])
+                            coppie_n[id(arco.nodo1)] = \
+                                (arco.nodo1, Diagnosticatore.alternativaRilevanza(coppie_n[id(arco.nodo1)][1], r2))
                         else:
                             coppie_n[id(arco.nodo1)] = (arco.nodo1, r2)
                         # end if
@@ -2147,82 +2325,265 @@ class Diagnosticatore(SpazioComportamentale):
             # la stringa da ritornare è l'alternativa delle concatenazioni
             # fra le stringhe di rilevanza delle coppie e le diagnosi del
             # nodo corrispondente
-            # todo: crea esempio che finisca in questo caso
-            hasEps = False
+            # todo: crea esempio che finisca in questo caso, al momento nessuna rete finisce qui
             for k_o, (x, r) in coppie.items():
-                (ret, hasEps) = Diagnosticatore.alternativaRilevanza(ret, Diagnosticatore.concatenaRilevanza(r, x.chiusura.diagnosi), hasEps)
+                ret = Diagnosticatore.alternativaRilevanza(
+                    ret, Diagnosticatore.concatenaRilevanza(r, x.chiusura.diagnosi))
 
         # Ritorna la diagnosi lineare
         return ret
 
-
-
-
+    def logStats(self):
+        """
+        Genera delle statistiche su questo Diagnosticatore e le salva nel Log
+        """
+        Log.new("Statistiche sul Diagnosticatore", "")
+        Log.new("\tNumero stati del diagnosticatore", f"{len(self.nodi)}")
+        Log.new("\tNumero stati finali del diagnosticatore", f"{len([n for n in self.nodi if n.isFinale])}")
+        Log.new("\tNumero stati nelle chiusure", f"{sum([len(n.chiusura.nodi) for n in self.nodi])}")
+        Log.new("\tNumero transizioni non osservabili (nelle chiusure)", f"{sum([len(n.chiusura.nodi) for n in self.nodi])}")
+        Log.new("\tNumero transizioni osservabili (fra gli stati del diagnosticatore)", f"{len(self.archi)}")
 
 
 ## MAIN ##
+class Log:
+    """
+    Classe statica contenente il log dell'esecuzione corrente.
+    Utile per tenere traccia di informazioni sull'esecuzione dei vari algoritmi.
+    """
 
-class Main():
+    """
+    Attributo statico che rappresenta le statistiche sull'esecuzione corrente
+    """
+    stats = []
+
+    """
+    Attributo statico che tiene conto di quando è stata chiamata l'ultima volta la funzione cronometro()
+    """
+    tempo = 0
+
     @staticmethod
-    def outputSerializer(nome_radice: str, rete: ReteFA, sc: SpazioComportamentale, commento="test", output_path=""):
+    def print() -> str:
         """
-        Genera i file di outputs (XML e DOT/GV) relativi alla reteFA e allo SpazioComportamentale in ingresso.
+        Genera la stringa con tutte le informazioni loggate
+        :return: la
+        """
+        out = []
+        for (k, v) in Log.stats:
+            out.append(f"{k}: {v}")
+        return "\n".join(out)
+
+    @staticmethod
+    def new(chiave: str, valore: str) -> None:
+        """
+        Inserisce una nuova entry nel log come coppia chiave valore.
+        :param chiave: la descrizione dell'entry nel log
+        :param valore: il valore dell'entry nel log
+        """
+        Log.stats.append((chiave, valore))
+
+    @staticmethod
+    def logtime(label="Timestamp") -> None:
+        """
+        Logga il timestamp
+        """
+        tempo = datetime.today().strftime("%d/%m/%Y %H:%M:%S")
+        Log.new(label, tempo)
+
+    @staticmethod
+    def cronometro() -> float:
+        """
+        Aggiorna la variabile tempo e ritorna quanto tempo è passato dall'ultima chiamata a cronometro (senza tenere
+        conto dei tempi di sleep dello scheduler di sistema).
+        La prima chiamata ritorna un valore inaffidabile.
+        È basato su time.process_time()
+        :return
+        """
+        tempo_new = time.process_time()
+        laptime = tempo_new - Log.tempo
+        Log.tempo = tempo_new
+        return laptime
+
+    @staticmethod
+    def reset() -> None:
+        """
+        Resetta il log ed il cronometro ad uno stato pulito.
+        Utile alla fine di un compito se si pensa di eseguirne un altro subito dopo.
+        """
+        Log.stats = []
+        Log.tempo = 0
+
+
+class Main:
+    """
+    Classe statica contenente tutti i metodi di alto livello necessari all'interazione con l'utente
+    """
+
+    """Path di default per gli output"""
+    DEFAULT_OUTPUT_PATH = "outputs/"
+
+    """Indice della run corrente (meglio recuperarlo usando getUniqueRunID()"""
+    URID = None
+
+    @staticmethod
+    def getUniqueRunID(output_path: str) -> int:
+        """
+        Cerca in output_path l'esistenza di un file di configurazione contenente il numero da utilizzare come ID per
+        marcare i file di output in modo univoco. Se non lo trova lo crea, se lo trova lo aggiorna.
+        :param output_path: il percorso di output corrente
+        :return: lo unique run ID da usare per la run corrente nella cartella corrente in output
+        """
+        uridpath = f"{output_path}.urid"
+        if Main.URID is None:
+            # Se l'URID non è ancora stato inizializzato nel software
+            # Controlla se il file esiste
+            if os.path.isfile(uridpath):
+                # Se esiste, aggiorna Main.URID e aggiorna il file
+                with open(uridpath, "rb") as ufile:
+                    oldurid = load(ufile)
+                    Main.URID = oldurid + 1
+            else:
+                # Se non esiste, inizializza a 0 Main.URID
+                Main.URID = 0
+
+            # Poi aggiorna il file .urid, o lo crea se non c'è
+            with open(uridpath, "wb") as ufile:
+                dump(Main.URID, ufile)
+
+        # Ora che l'URID è stato sicuramente inizializzato, lo ritorna
+        return Main.URID
+
+    @staticmethod
+    def outputSerializer(nome_compito: str, rete: ReteFA, sc: SpazioComportamentale, output_path="", osservazioneLineare=None):
+        """
+        Genera i file di output (XML e DOT/GV) relativi alla reteFA e allo SpazioComportamentale in ingresso.
         Se possibile, renderizza lo spazio comportamentale in input mediante il tool dot di GraphViz.
         Per funzionare, GraphViz deve essere installato e dot deve essere nella PATH del sistema operativo.
         Vedi https://graphviz.org/download/ per informazioni.
 
-        :param nome_radice: nome del compito per cui si sta generando l'outputs
-        :param rete: la ReteFA in outputs
-        :param sc: lo SpazioComportamentale in outputs
-        :param commento: un commento in merito all'esecuzione del compito
-        :param output_path: percorso che punta alla cartella dove salvare l'outputs
+        :param nome_compito: nome del compito per cui si sta generando l'output
+        :param rete: la ReteFA in output
+        :param sc: lo SpazioComportamentale in output
+        :param output_path: percorso che punta alla cartella dove salvare l'output
+        :param osservazioneLineare: l'eventuale osservazione lineare
         """
-        today = date.today()
-        filename = output_path + today.strftime("%Y%m%d") + "_" + nome_radice
-        root = ET.ElementTree.Element(nome_radice)
-        t = ET.ElementTree.ElementTree(root)
 
-        dotgraph = sc.makeDotGraph()
+        # Logica di costruzione dei filename
+        today = datetime.today()
+        # unique_id = today.strftime("%Y%m%d")
+        unique_id = str(Main.getUniqueRunID(output_path)).zfill(3)
+        filename_xml = output_path + unique_id + "_" + nome_compito + ".xml"
 
-        sc_elem = ET.ElementTree.SubElement(root, "spazioComportamentale")
-        sc_elem.text = "'" + dotgraph + "'"
+        # Deduci il tipo di spazio comportamentale stampato
+        # sia per il nome del file .gv e .png
+        # sia per il tag da usare nell'XML per riportare la rappresentazione dot del grafo
+        tipo_grafo = ""
+        tag_grafo = ""
+        if nome_compito == "compito1":
+            tipo_grafo = "SC"
+            tag_grafo = "spazioComportamentale"
+        elif nome_compito == "compito2":
+            tipo_grafo = "SCOL"
+            tag_grafo = "spazioComportamentaleOsservazioneLineare"
+        elif nome_compito == "compito4":
+            tipo_grafo = "D"
+            tag_grafo = "diagnosticatore"
+        filename_grafo = output_path + unique_id + "_"
 
-        commento_elem = ET.ElementTree.SubElement(root, "commento")
-        commento_elem.text = commento
+        # Genera l'albero XML
+        root = ET.Element(nome_compito)
+        t = ET.ElementTree(root)
 
-        base64_elem = ET.ElementTree.SubElement(root, "base64")
-        base64_elem.text = str(b64encode(dumps((rete, sc))),'utf-8')
+        # Varia il comportamento a seconda della presenza o meno dell'Osservazione Lineare
+        if osservazioneLineare:
+            sc_elem = ET.SubElement(root, "osservazioneLineare")
+            sc_elem.text = repr(osservazioneLineare)
 
-        # t.write(filename, encoding="utf-8")
-        with open(filename + ".xml", 'wb') as fileXML, \
-                open(filename + ".gv", 'w', encoding="utf-8") as fileDOT, open(filename + "_rete.gv", 'w', encoding="utf-8") as fileDOTRete:
+        # Varia il comportamento a seconda della necessità di stampare o meno lo spazio
+        dotgraph = None
+        stampa_spazio = False
+        if nome_compito == "compito1" or nome_compito == "compito2" or nome_compito == "compito4":
+            # Bisogna stampare lo spazio
+            stampa_spazio = True
+            dotgraph = sc.makeDotGraph()
+
+            sc_elem = ET.SubElement(root, tag_grafo)
+            sc_elem.text = "\n" + dotgraph + "\n"
+
+        commento_elem = ET.SubElement(root, "commento")
+        commento_elem.text = "\n" + Log.print() + "\n"
+
+        base64_elem = ET.SubElement(root, "base64")
+        base64_elem.text = str(b64encode(dumps((rete, sc))), 'utf-8')
+
+        with open(filename_xml, 'wb') as fileXML:
             t.write(fileXML, encoding="utf-8", short_empty_elements=False)
-            fileDOT.write(dotgraph)
-            fileDOTRete.write(rete.makeDotGraph())
+            if stampa_spazio:
+                with open(f"{filename_grafo}{tipo_grafo}.gv", 'w', encoding="utf-8") as fileDOT:
+                    fileDOT.write(dotgraph)
+                    if nome_compito == "compito1":
+                        with open(f"{filename_grafo}rete.gv", 'w', encoding="utf-8") as fileDOTRete:
+                            fileDOTRete.write(rete.makeDotGraph())
 
         try:
-            subprocess.call(f"dot -Tpng {filename}.gv -o {filename}.png")
-            subprocess.call(f"dot -Tpng {filename}_rete.gv -o {filename}_rete.png")
+            if stampa_spazio:
+                subprocess.call(f"dot -Tpng {filename_grafo}{tipo_grafo}.gv -o {filename_grafo}{tipo_grafo}.png")
+                if nome_compito == "compito1":
+                    subprocess.call(f"dot -Tpng {filename_grafo}rete.gv -o {filename_grafo}rete.png")
         except Exception as fnf:
-            print(fnf+"Forse graphviz non è installato ed impostato nella variabile PATH di sistema... vedi "
+            print(fnf + "Forse graphviz non è installato ed impostato nella variabile PATH di sistema... vedi "
                       "https://graphviz.org/download/")
+
+        # Resetta il log
+        Log.reset()
+
+    @staticmethod
+    def printDotGraph(dotgraph: str, filename: str):
+        """
+        Stampa il grafo espresso in linguaggio dot nel file png col nome dato
+        :param dotgraph: stringa rappresentante il grafo in DOT
+        :param filename: path dove salvare l'immagine
+        """
+        with open(filename + ".gv", 'w', encoding="utf-8") as fileDOT:
+            fileDOT.write(dotgraph)
+        try:
+            subprocess.call(f"dot -Tpng {filename}.gv -o {filename}.png")
+            #os.remove(f"{filename}.gv")
+        except Exception as fnf:
+            print(fnf+" Forse graphviz non è installato ed impostato nella variabile PATH di sistema... vedi "
+                      "https://graphviz.org/download/")
+
 
     @staticmethod
     def compito1(reteFA_xml_path: str, output_path: str) -> (ReteFA, SpazioComportamentale):
         """
         Genera gli oggetti ReteFA e SpazioComportamentale a partire da una descrizione della rete FA come file XML
         ben formattato.
-        Inoltre salva su disco il file di outputs corrispondente nella posizione specificata in output_path (o in
+        Inoltre salva su disco il file di output corrispondente nella posizione specificata in output_path (o in
         alternativa nella stessa cartella dell'input).
 
         :param reteFA_xml_path: il percorso su disco al file XML che descrive la ReteFa
-        :param output_path: il percorso su disco dove salvare il file XML che descrive l'outputs di Compito1
+        :param output_path: il percorso su disco dove salvare il file XML che descrive l'output di Compito1
         :return: la coppia ReteFA, SpazioComportamentale
         """
+        Log.logtime()
+        Log.new("Compito 1 - generazione dello Spazio Comportamentale a partire dalla rete", f"{reteFA_xml_path}")
+        Log.cronometro()
         rete = ReteFA.fromXML(reteFA_xml_path)
+        Log.new("\tTempo di generazione della ReteFA da XML", f"{Log.cronometro()}s")
+        rete.logStats()
+
+        Log.new("Generazione dello Spazio Comportamentale","")
+        Log.cronometro()
         sc = SpazioComportamentale()
         sc.creaSpazioComportamentale(rete)
+        Log.new("\tTempo di generazione dello SpazioComportamentale da ReteFA", f"{Log.cronometro()}s")
         sc.potaturaRidenominazione()
+        Log.new("\tTempo di potatura dello SpazioComportamentale", f"{Log.cronometro()}s")
+        sc.logStats()
+
+        # Genera file in output
+        Main.outputSerializer("compito1", rete, sc, output_path=output_path)
 
         return rete, sc
 
@@ -2232,64 +2593,141 @@ class Main():
         """
         Genera gli oggetti ReteFA e SpazioComportamentale relativo all'osservazione lineare data, a partire da una
         descrizione della rete FA come file XML ben formattato e un'osservazione lineare valida sulla rete FA.
-        Inoltre salva su disco il file di outputs corrispondente nella posizione specificata in output_path (o in
+        Inoltre salva su disco il file di output corrispondente nella posizione specificata in output_path (o in
         alternativa nella stessa cartella dell'input).
 
         :param reteFA: il percorso su disco al file XML che descrive la ReteFa
         :param osservazioneLineare: una lista ordinata di stringhe dove ogni stringa rappresenta un'osservazione su reteFA
-        :param output_path: il percorso su disco dove salvare il file XML che descrive l'outputs di Compito 2
+        :param output_path: il percorso su disco dove salvare il file XML che descrive l'output di Compito 2
         :return: la coppia ReteFA, SpazioComportamentale
         """
-        rete = ReteFA.fromXML(reteFA)
-        scol = SpazioComportamentale()
-        scol.creaSpazioComportamentaleOsservazioneLineare(rete, osservazioneLineare)
-        scol.potaturaRidenominazione()
-        return rete, scol
+        # Log.new("\nCompito 2 - Generazione dello Spazio Comportamentale relativo all'Osservazione lineare","")
+        # Log.new("Rete FA in input XML", f"{reteFA}")
+        # Log.new("Osservazione Lineare", f"{osservazioneLineare}")
+        # Log.cronometro()
+        # rete = ReteFA.fromXML(reteFA)
+        # Log.new("\tTempo di generazione della ReteFA da XML", f"{Log.cronometro()}s")
+        # rete.logStats()
+        #
+        # Log.new("Generazione dello SCOL", f"")
+        # Log.cronometro()
+        # scol = SpazioComportamentale()
+        # scol.creaSpazioComportamentaleOsservazioneLineare(rete, osservazioneLineare)
+        # scol.logStats()
+        # Log.new("\tTempo di generazione dello Spazio Comportamentale relativo all'Osservazione Lineare da ReteFA",
+        #         f"{Log.cronometro()}s")
+        # scol.potaturaRidenominazione()
+        # Log.new("\tTempo di potatura dello SpazioComportamentale relativo all'Osservazione Lineare", f"{Log.cronometro()}s")
+        #
+        # # Genera file in output
+        # Main.outputSerializer("compito2", rete, sc, output_path=output_path, osservazioneLineare=osservazioneLineare)
+        #
+        # return rete, scol
         raise NotImplementedError("Il tipo di reteFA in input alla funzione compito2 non è valido.")
 
     @compito2.register(str)
     @staticmethod
     def _(reteFA: str, osservazioneLineare: List[str], output_path: str) -> (ReteFA, SpazioComportamentale):
+        Log.logtime()
+        Log.new("\nCompito 2 - Generazione dello Spazio Comportamentale relativo all'Osservazione lineare", "")
+        Log.new("\tRete FA in input XML", f"{reteFA}")
+        Log.new("\tOsservazione Lineare", f"{osservazioneLineare}")
+        Log.cronometro()
         rete = ReteFA.fromXML(reteFA)
+        Log.new("\tTempo di generazione della ReteFA da XML", f"{Log.cronometro()}s")
+        rete.logStats()
+
+        Log.new("Generazione dello SCOL", f"")
+        Log.cronometro()
         scol = SpazioComportamentale()
         scol.creaSpazioComportamentaleOsservazioneLineare(rete, osservazioneLineare)
+        scol.logStats()
+        Log.new("\tTempo di generazione dello Spazio Comportamentale relativo all'Osservazione Lineare da ReteFA",
+                f"{Log.cronometro()}s")
         scol.potaturaRidenominazione()
+        Log.new("\tTempo di potatura dello SpazioComportamentale relativo all'Osservazione Lineare",
+                f"{Log.cronometro()}s")
+
+        # Genera file in output
+        Main.outputSerializer("compito2", rete, scol, output_path=output_path, osservazioneLineare=osservazioneLineare)
+
         return rete, scol
 
     @compito2.register(ReteFA)
     @staticmethod
     def _(reteFA: ReteFA, osservazioneLineare: List[str], output_path: str) -> (ReteFA, SpazioComportamentale):
+        Log.logtime()
+        Log.new("\nCompito 2 - Generazione dello Spazio Comportamentale relativo all'Osservazione lineare", "")
+        Log.new("Rete FA in input", f"Recuperata da una run precedente")
+        Log.new("Osservazione Lineare", f"{osservazioneLineare}")
+
+        Log.cronometro()
         scol = SpazioComportamentale()
         scol.creaSpazioComportamentaleOsservazioneLineare(reteFA, osservazioneLineare)
+        Log.new("\tTempo di generazione dello Spazio Comportamentale relativo all'Osservazione Lineare da ReteFA",
+                f"{Log.cronometro()}s")
         scol.potaturaRidenominazione()
+        Log.new("\tTempo di potatura dello SpazioComportamentale relativo all'Osservazione Lineare",
+                f"{Log.cronometro()}s")
+
+        # Genera file in output
+        Main.outputSerializer("compito2", reteFA, scol, output_path=output_path, osservazioneLineare=osservazioneLineare)
+
         return reteFA, scol
 
     @staticmethod
-    def compito3(scol: SpazioComportamentale, output_path: str) -> str:
+    def compito3(scol: SpazioComportamentale, osservazioneLineare: List[str], output_path: str, debug_on=False) -> str:
         """
         Genera la diagnosi a partire dallo SpazioComportamentale relativo all'osservazione lineare (come generato da compito2).
-        Inoltre salva su disco il file di outputs corrispondente nella posizione specificata in output_path (o in
+        Inoltre salva su disco il file di output corrispondente nella posizione specificata in output_path (o in
         alternativa nella stessa cartella dell'input).
 
         :param scol: lo SpazioComportamentale relativo all'osservazione lineare generato da Compito 2
-        :param output_path: il percorso su disco dove salvare il file XML che descrive l'outputs di Compito 3
+        :param output_path: il percorso su disco dove salvare il file XML che descrive l'output di Compito 3
         :return: la stringa di diagnosi relativa all'osservazione lineare data sulla ReteFA
         """
-        diagnosi = scol.espressioneRegolare()
+        # Imposto la posizione dell'output del debug
+        debug_path = output_path + "/debug"
+
+        Log.logtime()
+        Log.new("Compito 3 - Calcolo della diagnosi, a partire dallo spazio comportamentale relativo "
+                "all'osservazione lineare", "")
+
+        Log.cronometro()
+        diagnosi = scol.espressioneRegolare(debug_on=debug_on, debug_path=debug_path)
+        Log.new("\tTempo di calcolo della diagnosi con espressioneRegolare",
+                f"{Log.cronometro()}s")
+        Log.new("\tOsservazione Lineare", f"{osservazioneLineare}")
+        Log.new("\tDiagnosi Lineare", f"{diagnosi}")
+
+        # Genera file in output
+        Main.outputSerializer("compito3", rete=None, sc=scol, output_path=output_path, osservazioneLineare=osservazioneLineare)
+
         return diagnosi
 
     @staticmethod
     def compito4(spazio: SpazioComportamentale, output_path: str) -> Diagnosticatore:
         """
         Genera il diagnosticatore a partire dallo SpazioComportamentale (come generato da compito1).
-        Inoltre salva su disco il file di outputs corrispondente nella posizione specificata in output_path (o in
+        Inoltre salva su disco il file di output corrispondente nella posizione specificata in output_path (o in
         alternativa nella stessa cartella dell'input).
 
         :param spazio: lo SpazioComportamentale generato da Compito 1
-        :param output_path: il percorso su disco dove salvare il file XML che descrive l'outputs di Compito 4
+        :param output_path: il percorso su disco dove salvare il file XML che descrive l'output di Compito 4
         :return: il Diagnosticatore corrispondente
         """
+        Log.logtime()
+        Log.new("Compito 4 - Generazione del Diagnosticatore per lo spazio comportamentale in ingresso","")
+
+        Log.cronometro()
         diagnosticatore = spazio.generaDiagnosticatore()
+        Log.new("\tTempo di generazione del Diagnosticatore",
+                f"{Log.cronometro()}s")
+        diagnosticatore.logStats()
+
+        # Genera file in output
+        Main.outputSerializer("compito4", rete=None, sc=diagnosticatore, output_path=output_path)
+
         return diagnosticatore
 
     @staticmethod
@@ -2297,41 +2735,56 @@ class Main():
         """
         Genera la diagnosi relativa all'osservazione lineare a partire dal Diagnosticatore (come generato da compito 4)
         e ad una osservazione lineare.
-        Inoltre salva su disco il file di outputs corrispondente nella posizione specificata in output_path (o in
+        Inoltre salva su disco il file di output corrispondente nella posizione specificata in output_path (o in
         alternativa nella stessa cartella dell'input).
 
         :param diag: il Diagnosticatore di una ReteFA
         :param osservazioneLineare: una lista ordinata di stringhe dove ogni stringa rappresenta un'osservazione su reteFA
-        :param output_path: il percorso su disco dove salvare il file XML che descrive l'outputs di Compito 4
+        :param output_path: il percorso su disco dove salvare il file XML che descrive l'output di Compito 4
         :return: la stringa di diagnosi relativa all'osservazione lineare data sulla ReteFA
         """
+        Log.logtime()
+        Log.new("Compito 5 - Calcolo della diagnosi, a partire dal diagnosticatore per la rete", "")
+
+        Log.cronometro()
         diagnosi = diag.diagnosiLineare(osservazioneLineare)
+        Log.new("\tTempo di calcolo della diagnosi con espressioniRegolari",
+                f"{Log.cronometro()}s")
+        Log.new("\tOsservazione Lineare", f"{osservazioneLineare}")
+        Log.new("\tDiagnosi Lineare", f"{diagnosi}")
+        # Genera file in output
+        Main.outputSerializer("compito5", rete=None, sc=None, output_path=output_path, osservazioneLineare=osservazioneLineare)
+
         return diagnosi
 
     def fromCompito2(xmlPath: str):
         """
-        Estrazione delle informazioni necessarie al compito 3 a partire dall'outputs del compito 2:
+        Estrazione delle informazioni necessarie al compito 3 a partire dall'output del compito 2:
         estrae lo spazio comportamentale e la reteFA dall' XML in uscita al compito 2.
         :param xmlPath: xml che descrive lo spazio comportamentale relativo ad un osservazione lineare
-        :return: lo spazio comportamentale relativo all'osservazione lineare e la reteFA costruiti a partire dall'XML
+        :return: lo spazio comportamentale relativo all'osservazione lineare, la reteFA e l'osservazione lineare
         """
-        scol = SpazioComportamentale()
         reteFA = ReteFA('')
+        scol = SpazioComportamentale()
+        ol = None
         xsdPath = 'inputs/output_compito2.xsd'
         schema = xmlschema.XMLSchema(xsdPath)
         if schema.is_valid(xmlPath):
-            tree = ET.ElementTree.parse(source=xmlPath)
+            tree = ET.parse(source=xmlPath)
             root = tree.getroot()
+
+            # todo: potrebbe essere necessario fare un parsing a List[str] di ol
+            ol = root.find('osservazioneLineare').replace("'", "").strip("][").split(", ")
 
             pickledb64 = root.find('base64').text
 
             (reteFA, scol) = loads(b64decode(pickledb64))
 
-        return reteFA, scol
+        return reteFA, scol, ol
 
     def fromCompito1(xmlPath: str):
         """
-        Estrazione delle informazioni necessarie al compito 4 a partire dall'outputs del compito 1:
+        Estrazione delle informazioni necessarie al compito 4 a partire dall'output del compito 1:
         estrae lo spazio comportamentale e la reteFA dall' XML in uscita al compito 1.
         :param xmlPath: xml che descrive lo spazio comportamentale
         :return: lo spazio comportamentale e la reteFA costruiti a partire dall'XML
@@ -2341,7 +2794,7 @@ class Main():
         xsdPath = 'inputs/output_compito1.xsd'
         schema = xmlschema.XMLSchema(xsdPath)
         if schema.is_valid(xmlPath):
-            tree = ET.ElementTree.parse(source=xmlPath)
+            tree = ET.parse(source=xmlPath)
             root = tree.getroot()
 
             (reteFA, sc) = loads(b64decode(root.find('base64').text))
@@ -2350,7 +2803,7 @@ class Main():
 
     def fromCompito4(xmlPath: str):
         """
-        Estrazione delle informazioni necessarie al compito 5 a partire dall'outputs del compito 4:
+        Estrazione delle informazioni necessarie al compito 5 a partire dall'output del compito 4:
         estrae il diagnosticatore dall' XML in uscita al compito 4.
         :param xmlPath: xml che descrive lo spazio comportamentale relativo ad un osservazione lineare
         :return: il diagnosticatore costruito a partire dall'XML
@@ -2359,41 +2812,105 @@ class Main():
         xsdPath = 'inputs/output_compito4.xsd'
         schema = xmlschema.XMLSchema(xsdPath)
         if schema.is_valid(xmlPath):
-            tree = ET.ElementTree.parse(source=xmlPath)
+            tree = ET.parse(source=xmlPath)
             root = tree.getroot()
 
             (reteFA, diag) = loads(b64decode(root.find('base64').text))
 
         return reteFA, diag
 
+#################
+## RUN TARGETS ##
+#################
 
 if __name__ == '__main1__':
-
-    parser = argparse.ArgumentParser(description='Expr Reg')
-    parser.add_argument("compito", type=int, help="Numero del Compito da eseguire", choices=[1, 2, 3, 4, 5])
-    parser.add_argument("-r", "--reteFA", help="file di input contenente la Rete FA")
-    parser.add_argument("-o", "--ol", help="Osservazione Lineare")
-    parser.add_argument("-p", "--precedente", action='store_true', default=False, help="Utilizza outputs di un compito precedente")
-    parser.add_argument("-f", "--fileOutput", help="file di input contenente l'outputs di un compito precedente")
+    # todo: fai in modo che la description sia leggibile dall'utente
+    parser = argparse.ArgumentParser(description=
+"""retefa -
+ Calcola la diagnosi di rilevanza di una rete di automi a stati finiti (ReteFA),
+ a fronte di una particolare osservazione lineare effettuata sui comportamenti.
+ 
+ Una ReteFA è descritta da un file XML. Si faccia riferimento agli esempi nella cartella inputs.
+ 
+ Un'osservazione lineare è una lista di osservazioni sulla rete.
+    Esempio: [\"o1\", \"o2\"]
+ 
+ Una diagnosi di rilevanza è un'espressione regolare ove sono presenti i seguenti operatori:
+    - Concatenazione: ab
+    - Alternativa:    a|b
+    - Ripetizione:    a*
+    - Raggruppamento: (ab)c
+    
+ Questa applicazione è in grado di eseguire i seguenti compiti
+    1- Generazione di uno Spazio Comportamentale da una reteFA
+        Richiede in ingresso
+            - una reteFA descritta da un file XML
+        
+    2- Generazione di uno Spazio Comportamentale relativo a un'Osservazione Lineare da una ReteFA e una OL
+        Richiede in ingresso
+            - una reteFA descritta da un file XML o dall'output di Compito 1
+            - una Osservazione Lineare 
+            
+    3- Calcolo di una Diagnosi Lineare a partire da uno Spazio Comportamentale relativo a un'Osservazione Lineare
+        Richiede in ingresso
+            - uno  Spazio Comportamentale relativo a un'Osservazione Lineare, ovvero l'output di Compito 2
+            
+    4- Generazione di un Diagnosticatore a partire da uno Spazio Comportamentale
+        Richiede in ingresso
+            - uno Spazio Comportamentale, ovvero l'output di Compito 1
+            
+    5- Calcolo di una Diagnosi Lineare a partire da un Diagnosticatore e un'Osservazione Lineare
+        Richiede in ingresso
+            - un Diagnosticatore, ovvero l'output di Compito 4
+    
+ I compiti devono essere dunque svolti in uno dei seguenti ordini. Gli output di un compito possono essere usati come
+ input del successivo nella catena di esecuzione:
+    A- Compito 1 -> Compito 4 -> Compito 5 
+       la diagnosi è calcolata con Espressioni Regolari, ovvero il Diagnosticatore.
+       Utile se si pensa di riusare il diagnosticatore per più diagnosi relative ad Osservazioni Lineari diverse sulla 
+       stessa rete
+      
+    B- (Compito 1 -> )Compito 2 -> Compito 3
+       la diagnosi è calcolata con Espressione Regolare, sulla chiusura lineare. Si può risparmia il tempo di parsing e
+       conversione della ReteFA dall'XML alla struttura dati interna usando come input l'output di Compito 1.
+       Utile per reti grandi dove è molto oneroso calcolare il diagnosticatore.
+       
+ È possibile interrompere l'esecuzione del programma in ogni momento premendo su Ctrl-C.
+       
+    """)
+    parser.add_argument("-c", "--compito", type=int, help="Numero del compito da eseguire", choices=[1, 2, 3, 4, 5])
+    parser.add_argument("-r", "--reteFA", help="File di input XML contenente la Rete FA")
+    parser.add_argument("-o", "--ol", help="Osservazione Lineare, scritta tra quadre, es. [\"o1\", \"o2\"]")
+    parser.add_argument("-O", "--outputpath", help="Path della cartella di output desiderata", default=Main.DEFAULT_OUTPUT_PATH)
+    # todo: check su -p e -f, non è chiara la differenza
+    parser.add_argument("-d", "--debugInfo", action='store_true', default=False,
+                        help="Genera ulteriori info di debug (fra cui i grafi delle iter di espressioneRegolare in Compito 3)")
+    parser.add_argument("-p", "--precedente", action='store_true', default=False, help="Utilizza output di un compito precedente")
+    parser.add_argument("-f", "--fileOutput", help="path di un file di input contenente l'output prodotto da un compito precedente")
 
     args = parser.parse_args()
-    print(args.ol, args.reteFA, args.precedente, args.fileOutput)
+    print(f"Esecuzione del compito {args.compito} sull'input '{args.reteFA}'.\nPath dell'output: '{args.outputPath}'")
     t = time.time()
 
+    # Log iniziale
+    Log.logtime("Inizio esecuzione")
+    Log.new("Compito", args.compito)
+    Log.new("File input", args.reteFA)
+    Log.new("Path input", args.outputPath)
+
+    # Logica di gestione degli input
     if args.compito == 1:
         # controllo validità input
         if args.reteFA is not None:
-            s1, r1 = Main.compito1(args.reteFA, "")
-            Main.outputSerializer("compito1", r1, s1, output_path="outputs/")
+            s1, r1 = Main.compito1(args.reteFA, args.outputPath)
         else:
-            print('rete FA non inserita')
+            print('Rete FA non inserita')
     elif args.compito == 2:
         # controllo validità input
         if args.reteFA is not None:
             if args.ol is not None:
                 ol = args.ol.strip(']["').split(',')
-                r2a, scol = Main.compito2(args.reteFA, ol, "")
-                Main.outputSerializer("compito2", r2a, scol, output_path="outputs/")
+                r2a, scol = Main.compito2(args.reteFA, ol, args.outputPath)
             else:
                 print('Osservazione Lineare non inserita')
         else:
@@ -2404,8 +2921,8 @@ if __name__ == '__main1__':
             if args.reteFA is not None:
                 if args.ol is not None:
                     ol = args.ol.strip(']["').split(',')
-                    r2a, scol = Main.compito2(args.reteFA, ol, "")
-                    d3 = Main.compito3(scol, "")
+                    r2a, scol = Main.compito2(args.reteFA, ol, args.outputPath)
+                    d3 = Main.compito3(scol, args.outputPath, debug_on=args.debugInfo)
                     print(f"Diagnosi ottenuta da compito 3: {d3}")
                 else:
                     print('Osservazione Lineare non inserita')
@@ -2413,8 +2930,8 @@ if __name__ == '__main1__':
                 print('rete FA non inserita')
         elif args.precedente:
             if args.fileOutput is not None:
-                reteFA, scol = Main.fromCompito2(args.fileOutput)
-                d3 = Main.compito3(scol, "")
+                reteFA, scol, ol = Main.fromCompito2(args.fileOutput)
+                d3 = Main.compito3(scol, ol, args.outputPath, debug_on=args.debugInfo)
                 print(f"Diagnosi ottenuta da compito 3: {d3}")
             else:
                 print('percorso file non inserito')
@@ -2424,16 +2941,14 @@ if __name__ == '__main1__':
         # controllo validità input
         if not args.precedente:
             if args.reteFA is not None:
-                reteFA, sc = Main.compito1(args.reteFA, "")
-                diagnosticatore4 = Main.compito4(sc, "")
-                Main.outputSerializer("compito4", reteFA, diagnosticatore4, output_path="outputs/")
+                reteFA, sc = Main.compito1(args.reteFA, args.outputPath)
+                diagnosticatore4 = Main.compito4(sc, args.outputPath)
             else:
                 print('rete FA non inserita')
         elif args.precedente:
             if args.fileOutput is not None:
                 reteFA, sc = Main.fromCompito1(args.fileOutput)
-                diagnosticatore4 = Main.compito4(sc, "")
-                #Main.outputSerializer("compito4", reteFA, diagnosticatore4, output_path="outputs/")
+                diagnosticatore4 = Main.compito4(sc, args.outputPath)
             else:
                 print('percorso file non inserito')
         else:
@@ -2444,12 +2959,12 @@ if __name__ == '__main1__':
             if args.reteFA is not None:
                 if args.ol is not None:
                     ol = args.ol.strip(']["').split(',')
-                    r1, s1 = Main.compito1(args.reteFA, "")
-                    diagnosticatore4 = Main.compito4(s1, "")
-                    d5 = Main.compito5(diagnosticatore4, ol, "")
+                    r1, s1 = Main.compito1(args.reteFA, args.outputPath)
+                    diagnosticatore4 = Main.compito4(s1, args.outputPath)
+                    d5 = Main.compito5(diagnosticatore4, ol, args.outputPath)
                     print(f"Diagnosi ottenuta da Diagnosticatore: {d5}")
             else:
-                print('rete FA non inserita')
+                print('Rete FA non inserita!')
         elif args.precedente:
             if args.fileOutput is not None:
                     if args.ol is not None:
@@ -2460,9 +2975,9 @@ if __name__ == '__main1__':
                     else:
                         print('Osservazione Lineare non inserita')
             else:
-                print('percorso file non inserito')
+                print('Percorso file non inserito')
         else:
-            print('parametri non validi')
+            print('Parametri in input non validi')
 
     elapsed = time.time() - t
     print(f"Tempo di esecuzione: {elapsed}")
@@ -2473,40 +2988,38 @@ if __name__ == '__main__':
     # ol = ["o3", "o2"]
     # ol = ["o3", "o2", "o3", "o2"]
     # ol = ["o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2"]
-    # ol = ["o3", "o2", "o3", "o2"]
-    # ol = ["act", "sby", "nop"]
     # ol = ["o1","o2","o1"]
 
-    xmlPath = 'inputs/input_rete2.xml'
-    ol = ["act", "sby", "nop"]
+    # xmlPath = 'inputs/input_rete2.xml'
+    # ol = ["act", "sby", "nop"]
 
-    # xmlPath = 'inputs/input_rete3.xml'
-    # ol = ["o1"]
+    xmlPath = 'inputs/input_rete3.xml'
+    ol = ["o1"]
+
+    # xmlPath = 'inputs/input_reteCane.xml'
+    # ol = ["Calmo", "Abbaia"]
 
     # Test Output Compito 1
-    r1, s1 = Main.compito1(xmlPath, "")
-    Main.outputSerializer("compito1", r1, s1, output_path="outputs/")
+    r1, s1 = Main.compito1(xmlPath, Main.DEFAULT_OUTPUT_PATH)
+    # Main.outputSerializer("compito1", r1, s1, output_path="outputs/")
 
     # Test Output Compito 2
     scol = None
     # try:
-    r2a, scol2a = Main.compito2(xmlPath, ol, "")
-    r2b, scol2b = Main.compito2(r1, ol, "")
-    scol = scol2a if scol2a else scol2b if scol2b else None
-    Main.outputSerializer("compito2", r2a, scol, output_path="outputs/")
-    # Main.compito2(None, ol, "")
-    # except Exception as e:
-    #     print(f"Ho intercettato un eccezione in Compito 2: {e}")
+    r2a, scol2a = Main.compito2(xmlPath, ol, Main.DEFAULT_OUTPUT_PATH)
+    # r2b, scol2b = Main.compito2(r1, ol, Main.DEFAULT_OUTPUT_PATH)
+    # scol = scol2a if scol2a else scol2b if scol2b else None
+
+    scol = scol2a
 
     # Test Output Compito 3
-    d3 = Main.compito3(scol, "")
+    d3 = Main.compito3(scol, ol, Main.DEFAULT_OUTPUT_PATH, debug_on=True)
 
     # Test Output Compito 4
-    diagnosticatore4 = Main.compito4(s1, "")
-    Main.outputSerializer("compito4", r1, diagnosticatore4, output_path="outputs/")
+    diagnosticatore4 = Main.compito4(s1, Main.DEFAULT_OUTPUT_PATH)
 
     # Test Output Compito 5
-    d5 = Main.compito5(diagnosticatore4, ol, "")
+    d5 = Main.compito5(diagnosticatore4, ol, Main.DEFAULT_OUTPUT_PATH)
 
     # Stampo le diagnosi
     print(f"Diagnosi ottenute:\nDa compito 3: {d3}\nDa compito 5: {d5}")
@@ -2592,5 +3105,3 @@ if __name__ == '__test2__':
     scol = SpazioComportamentale()
     scol.creaSpazioComportamentaleOsservazioneLineare(rete, ol)
     scol.potaturaRidenominazione()
-
-    print("ciao")
