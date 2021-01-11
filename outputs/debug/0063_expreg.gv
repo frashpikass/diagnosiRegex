@@ -1,0 +1,13 @@
+digraph SpazioComportamentale {
+    // ARCHI
+    start	->	n0
+	n0	->	n26 [label=<<br/><font color="red">f1</font>> color=red]
+	n0	->	nnq [label=<<br/><font color="red">f1f1|f3|f1f3|ε|f3f1|f1</font>>]
+	n26	->	nnq [label=<<br/><font color="red">f3|f1|ε</font>> color=red]
+
+    // NODI
+    start[shape="circle"]
+	n0 [label=<<b>0</b><br/>10 20 30 ε(L1) ε(L2) ε(L3)<br/>Ind. Oss.: 0>]
+	n26 [label=<<b>26</b><br/>10 20 31 ε(L1) ε(L2) ε(L3)<br/>Ind. Oss.: 0> color=red]
+	nnq [label=<<b>nq</b><br/> <br/>Ind. Oss.: 0> peripheries=2]
+}

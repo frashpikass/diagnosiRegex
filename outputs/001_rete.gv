@@ -1,0 +1,44 @@
+digraph ReteFA {
+    graph [compound=true]
+    node [shape=record]
+    // LINKS
+    cC3_start -> cC2_start [label="L2" ltail=cluster_C3 lhead=cluster_C2]
+	cC2_start -> cC3_start [label="L3" ltail=cluster_C2 lhead=cluster_C3]
+
+    // COMPORTAMENTI
+    subgraph cluster_C2 {
+        node [shape=ellipse]
+        label = <<b>C2</b>
+		<br/>t2a: e2(L2)/{e3(L3)}
+		<br/>t2b: /{e3(L3)}>
+        
+        // Transizioni
+        cC2_start -> cC2_20
+		cC2_20 -> cC2_21 [label=<t2a<br/><font color="green4">o2</font>>]
+		cC2_21 -> cC2_20 [label=<t2b<br/><font color="red">r</font>>]
+
+        // Stati
+        cC2_start [style=invis]
+		cC2_20 [label=<<b>20</b>>]
+		cC2_21 [label=<<b>21</b>>]
+    }
+
+	subgraph cluster_C3 {
+        node [shape=ellipse]
+        label = <<b>C3</b>
+		<br/>t3a: /{e2(L2)}
+		<br/>t3b: e3(L3)
+		<br/>t3c: e3(L3)>
+        
+        // Transizioni
+        cC3_start -> cC3_30
+		cC3_30 -> cC3_31 [label=<t3a<br/><font color="green4">o3</font>>]
+		cC3_31 -> cC3_30 [label=<t3b>]
+		cC3_31 -> cC3_31 [label=<t3c<br/><font color="red">f</font>>]
+
+        // Stati
+        cC3_start [style=invis]
+		cC3_30 [label=<<b>30</b>>]
+		cC3_31 [label=<<b>31</b>>]
+    }
+}
