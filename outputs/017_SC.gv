@@ -1,0 +1,19 @@
+digraph SpazioComportamentale {
+    // ARCHI
+    start	->	n0
+	n0	->	n1 [label=<<br/>a<br/><font color="green4">g</font><br/><font color="red">clik</font>>]
+	n1	->	n2 [label=<<br/>d<br/><font color="red">scrivo</font>>]
+	n2	->	n3 [label=<<br/>b<br/><font color="red">clik</font>>]
+	n2	->	n4 [label=<<br/>f<br/><font color="green4">g</font><br/><font color="red">2clik</font>>]
+	n3	->	n5 [label=<<br/>e<br/><font color="green4">s</font><br/><font color="red">scrivi</font>>]
+	n5	->	n0 [label=<<br/>c<br/><font color="green4">s</font>>]
+
+    // NODI
+    start[shape="circle"]
+	n0 [label=<<b>0</b><br/>su nonscrive ε(L1) ε(L2)<br/>Ind. Oss.: 0> peripheries=2]
+	n1 [label=<<b>1</b><br/>giu nonscrive ε(L1) puntagiu(L2)<br/>Ind. Oss.: 0>]
+	n2 [label=<<b>2</b><br/>giu scrive premi(L1) ε(L2)<br/>Ind. Oss.: 0>]
+	n3 [label=<<b>3</b><br/>su scrive ε(L1) ε(L2)<br/>Ind. Oss.: 0> peripheries=2]
+	n4 [label=<<b>4</b><br/>giu scrive ε(L1) ε(L2)<br/>Ind. Oss.: 0> peripheries=2]
+	n5 [label=<<b>5</b><br/>su scrive ε(L1) puntasu(L2)<br/>Ind. Oss.: 0>]
+}

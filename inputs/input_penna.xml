@@ -1,0 +1,67 @@
+<?xml version='1.1' encoding='UTF-8'?>
+<retefa nome="penna">
+
+	<comportamenti>
+		<comportamento nome="PULSANTE" statoIniziale="su">
+			<stati>
+				<stato nome="su" />
+				<stato nome="giu" />
+			</stati>
+
+			<transizioni>
+				<transizione nome="a" stato0="su" stato1="giu" osservabilita="" rilevanza="clik">
+					
+					<eventiOutput>
+						<evento nome="puntagiu" link="L2" />
+					</eventiOutput>
+				</transizione>
+
+				<transizione nome="b" stato0="giu" stato1="su" osservabilita="" rilevanza="clik">
+					<eventoNecessario nome="premi" link="L1" />
+				</transizione>
+				<transizione nome="e" stato0="su" stato1="su" osservabilita="s" rilevanza="scrivo">
+
+					<eventiOutput>
+						<evento nome="puntasu" link="L2" />
+					</eventiOutput>
+				</transizione>
+				<transizione nome="f" stato0="giu" stato1="giu" osservabilita="g" rilevanza="2clik">
+					<eventoNecessario nome="premi" link="L1" />
+				</transizione>
+			</transizioni>
+		</comportamento>
+
+		<comportamento nome="SCRITTURA" statoIniziale="scrive">
+			<stati>
+				<stato nome="scrive" />
+				<stato nome="nonscrive" />
+			</stati>
+
+			<transizioni>
+				<transizione nome="c" stato0="scrive" stato1="nonscrive" osservabilita="s" rilevanza="">
+					<eventoNecessario nome="puntasu" link="L2" />
+					
+				</transizione>
+
+				<transizione nome="d" stato0="nonscrive" stato1="scrive" osservabilita="" rilevanza="scrivo">
+					<eventoNecessario nome="puntagiu" link="L2" />
+					<eventiOutput>
+						<evento nome="premi" link="L1" />
+					</eventiOutput>
+				</transizione>
+				<transizione nome="g" stato0="scrive" stato1="nonscrive" osservabilita="" rilevanza="">
+
+					<eventiOutput>
+						<evento nome="premi" link="L1" />
+						<evento nome="puntasu" link="L2" />
+					</eventiOutput>
+				</transizione>
+			</transizioni>
+		</comportamento>
+	</comportamenti>
+
+	<links>
+		<link nome="L1" comp0="SCRITTURA" comp1="PULSANTE" />
+		<link nome="L2" comp0="PULSANTE" comp1="SCRITTURA" />
+	</links>
+</retefa>

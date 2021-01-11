@@ -3,7 +3,7 @@
   <xs:element name="compito4">
     <xs:complexType>
       <xs:sequence>
-        <xs:element name="spazioComportamentale" type="xs:string" />
+        <xs:element name="diagnosticatore" type="xs:string" />
         <xs:element name="commento" type="xs:string" />
         <xs:element name="base64" type="xs:string" />
       </xs:sequence>

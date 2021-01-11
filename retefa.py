@@ -2773,8 +2773,7 @@ class Main:
             tree = ET.parse(source=xmlPath)
             root = tree.getroot()
 
-            # todo: potrebbe essere necessario fare un parsing a List[str] di ol
-            ol = root.find('osservazioneLineare').replace("'", "").strip("][").split(", ")
+            ol = root.find('osservazioneLineare').text.replace("'", "").strip("][").split(", ")
 
             pickledb64 = root.find('base64').text
 
@@ -2823,8 +2822,7 @@ class Main:
 ## RUN TARGETS ##
 #################
 
-if __name__ == '__main1__':
-    # todo: fai in modo che la description sia leggibile dall'utente
+if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=
 """retefa -
  Calcola la diagnosi di rilevanza di una rete di automi a stati finiti (ReteFA),
@@ -2881,7 +2879,7 @@ if __name__ == '__main1__':
     parser.add_argument("-c", "--compito", type=int, help="Numero del compito da eseguire", choices=[1, 2, 3, 4, 5])
     parser.add_argument("-r", "--reteFA", help="File di input XML contenente la Rete FA")
     parser.add_argument("-o", "--ol", help="Osservazione Lineare, scritta tra quadre, es. [\"o1\", \"o2\"]")
-    parser.add_argument("-O", "--outputpath", help="Path della cartella di output desiderata", default=Main.DEFAULT_OUTPUT_PATH)
+    parser.add_argument("-O", "--outputPath", help="Path della cartella di output desiderata", default=Main.DEFAULT_OUTPUT_PATH)
     # todo: check su -p e -f, non è chiara la differenza
     parser.add_argument("-d", "--debugInfo", action='store_true', default=False,
                         help="Genera ulteriori info di debug (fra cui i grafi delle iter di espressioneRegolare in Compito 3)")
@@ -2890,6 +2888,7 @@ if __name__ == '__main1__':
 
     args = parser.parse_args()
     print(f"Esecuzione del compito {args.compito} sull'input '{args.reteFA}'.\nPath dell'output: '{args.outputPath}'")
+
     t = time.time()
 
     # Log iniziale
@@ -2970,7 +2969,8 @@ if __name__ == '__main1__':
                     if args.ol is not None:
                         ol = args.ol.strip(']["').split(',')
                         reteFA, diag = Main.fromCompito4(args.fileOutput)
-                        d5 = Main.compito5(diag, ol, "")
+                        #d5 = Main.compito5(diag, ol, "")
+                        d5 = Main.compito5(diag, ol, args.outputPath)
                         print(f"Diagnosi ottenuta da Diagnosticatore: {d5}")
                     else:
                         print('Osservazione Lineare non inserita')
@@ -2980,10 +2980,10 @@ if __name__ == '__main1__':
             print('Parametri in input non validi')
 
     elapsed = time.time() - t
-    print(f"Tempo di esecuzione: {elapsed}")
+    print(f"Tempo di esecuzione: {elapsed} sec.")
 
 # Target di esecuzione per il test dell'output di tutti i compiti
-if __name__ == '__main__':
+if __name__ == '__main1__':
     # xmlPath = 'inputs/input.xml'
     # ol = ["o3", "o2"]
     # ol = ["o3", "o2", "o3", "o2"]

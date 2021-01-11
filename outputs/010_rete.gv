@@ -1,0 +1,44 @@
+digraph ReteFA {
+    graph [compound=true]
+    node [shape=record]
+    // LINKS
+    cSCRITTURA_start -> cPULSANTE_start [label="L1" ltail=cluster_SCRITTURA lhead=cluster_PULSANTE]
+	cPULSANTE_start -> cSCRITTURA_start [label="L2" ltail=cluster_PULSANTE lhead=cluster_SCRITTURA]
+
+    // COMPORTAMENTI
+    subgraph cluster_PULSANTE {
+        node [shape=ellipse]
+        label = <<b>PULSANTE</b>
+		<br/>a: /{puntagiu(L2)}
+		<br/>b: premi(L1)/{puntasu(L2)}
+		<br/>e: /{puntasu(L2)}>
+        
+        // Transizioni
+        cPULSANTE_start -> cPULSANTE_su
+		cPULSANTE_su -> cPULSANTE_giu [label=<a<br/><font color="green4">g</font><br/><font color="red">clik</font>>]
+		cPULSANTE_su -> cPULSANTE_su [label=<e<br/><font color="green4">s</font><br/><font color="red">2clik</font>>]
+		cPULSANTE_giu -> cPULSANTE_su [label=<b<br/><font color="red">clik</font>>]
+
+        // Stati
+        cPULSANTE_start [style=invis]
+		cPULSANTE_su [label=<<b>su</b>>]
+		cPULSANTE_giu [label=<<b>giu</b>>]
+    }
+
+	subgraph cluster_SCRITTURA {
+        node [shape=ellipse]
+        label = <<b>SCRITTURA</b>
+		<br/>c: puntasu(L2)
+		<br/>d: puntagiu(L2)/{premi(L1)}>
+        
+        // Transizioni
+        cSCRITTURA_start -> cSCRITTURA_nonscrive
+		cSCRITTURA_scrive -> cSCRITTURA_nonscrive [label=<c<br/><font color="green4">s</font>>]
+		cSCRITTURA_nonscrive -> cSCRITTURA_scrive [label=<d<br/><font color="red">scrivo</font>>]
+
+        // Stati
+        cSCRITTURA_start [style=invis]
+		cSCRITTURA_scrive [label=<<b>scrive</b>>]
+		cSCRITTURA_nonscrive [label=<<b>nonscrive</b>>]
+    }
+}
