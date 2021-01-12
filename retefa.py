@@ -2501,7 +2501,7 @@ class Main:
         return Main.URID
 
     @staticmethod
-    def outputSerializer(nome_compito: str, rete: ReteFA, sc: SpazioComportamentale, output_path="", osservazioneLineare=None):
+    def outputSerializer(nome_compito: str, rete: ReteFA, sc: SpazioComportamentale, output_path="", osservazioneLineare=None, dotprint = True):
         """
         Genera i file di output (XML e DOT/GV) relativi alla reteFA e allo SpazioComportamentale in ingresso.
         Se possibile, renderizza lo spazio comportamentale in input mediante il tool dot di GraphViz.
@@ -2513,6 +2513,7 @@ class Main:
         :param sc: lo SpazioComportamentale in output
         :param output_path: percorso che punta alla cartella dove salvare l'output
         :param osservazioneLineare: l'eventuale osservazione lineare
+        :param dotprint: True se si vuole stampare il grafo usando dot
         """
 
         # Logica di costruzione dei filename
@@ -2576,7 +2577,7 @@ class Main:
                             fileDOTRete.write(rete.makeDotGraph())
 
         try:
-            if stampa_spazio:
+            if stampa_spazio and dotprint:
                 subprocess.call(f"dot -Tpng {filename_grafo}{tipo_grafo}.gv -o {filename_grafo}{tipo_grafo}.png")
                 if nome_compito == "compito1":
                     subprocess.call(f"dot -Tpng {filename_grafo}rete.gv -o {filename_grafo}rete.png")
@@ -2985,7 +2986,7 @@ if __name__ == '__main__':
        
  È possibile interrompere l'esecuzione del programma in ogni momento premendo Ctrl-C sulla tastiera.
        
-    """)
+    """, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("-c", "--compito", type=int, help="Numero del compito da eseguire", choices=[1, 2, 3, 4, 5])
     parser.add_argument("-r", "--reteFA", help="File di input XML contenente la Rete FA")
     parser.add_argument("-o", "--ol", help="Osservazione Lineare, scritta tra quadre, es. [\"o1\", \"o2\"]")
@@ -3148,11 +3149,14 @@ if __name__ == '__main1__':
         # xmlPath = 'inputs/input_rete2.xml'
         # ol = ["act", "sby", "nop"]
 
-        xmlPath = 'inputs/input_rete3.xml'
-        ol = ["o1"]
+        # xmlPath = 'inputs/input_rete3.xml'
+        # ol = ["o1"]
 
         # xmlPath = 'inputs/input_reteCane.xml'
         # ol = ["Calmo", "Abbaia"]
+
+        xmlPath = 'inputs/input_penna.xml'
+        ol = ["s", "s"]
 
         # Test Output Compito 1
         r1, s1 = Main.compito1(xmlPath, Main.DEFAULT_OUTPUT_PATH)

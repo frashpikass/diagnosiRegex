@@ -1,0 +1,15 @@
+digraph SpazioComportamentale {
+    // ARCHI
+    start	->	nx0
+	nx0	->	nx1 [label=<<br/>e<br/><font color="green4">s</font><br/><font color="red">scrivo</font>>]
+	nx1	->	nx2 [label=<<br/>c<br/><font color="green4">s</font>>]
+	nx2	->	nx5 [label=<<br/>f<br/><font color="green4">g</font><br/><font color="red">2clikclikscrivo</font>>]
+	nx2	->	nx1 [label=<<br/>e<br/><font color="green4">s</font><br/><font color="red">scrivoclikscrivoclik</font>>]
+
+    // NODI
+    start[shape="circle"]
+	nx0 [label=<<b>x0</b><br/> <br/>Ind. Oss.: 0> peripheries=2]
+	nx1 [label=<<b>x1</b><br/> <br/>Ind. Oss.: 0>]
+	nx2 [label=<<b>x2</b><br/> <br/>Ind. Oss.: 0> peripheries=2]
+	nx5 [label=<<b>x5</b><br/> <br/>Ind. Oss.: 0> peripheries=2]
+}

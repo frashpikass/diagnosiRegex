@@ -1,0 +1,28 @@
+<compito4><diagnosticatore>
+digraph SpazioComportamentale {
+    // ARCHI
+    start	-&gt;	nx0
+	nx0	-&gt;	nx1 [label=&lt;&lt;br/&gt;e&lt;br/&gt;&lt;font color="green4"&gt;s&lt;/font&gt;&lt;br/&gt;&lt;font color="red"&gt;scrivo&lt;/font&gt;&gt;]
+	nx1	-&gt;	nx2 [label=&lt;&lt;br/&gt;c&lt;br/&gt;&lt;font color="green4"&gt;s&lt;/font&gt;&gt;]
+	nx2	-&gt;	nx5 [label=&lt;&lt;br/&gt;f&lt;br/&gt;&lt;font color="green4"&gt;g&lt;/font&gt;&lt;br/&gt;&lt;font color="red"&gt;2clikclikscrivo&lt;/font&gt;&gt;]
+	nx2	-&gt;	nx1 [label=&lt;&lt;br/&gt;e&lt;br/&gt;&lt;font color="green4"&gt;s&lt;/font&gt;&lt;br/&gt;&lt;font color="red"&gt;scrivoclikscrivoclik&lt;/font&gt;&gt;]
+
+    // NODI
+    start[shape="circle"]
+	nx0 [label=&lt;&lt;b&gt;x0&lt;/b&gt;&lt;br/&gt; &lt;br/&gt;Ind. Oss.: 0&gt; peripheries=2]
+	nx1 [label=&lt;&lt;b&gt;x1&lt;/b&gt;&lt;br/&gt; &lt;br/&gt;Ind. Oss.: 0&gt;]
+	nx2 [label=&lt;&lt;b&gt;x2&lt;/b&gt;&lt;br/&gt; &lt;br/&gt;Ind. Oss.: 0&gt; peripheries=2]
+	nx5 [label=&lt;&lt;b&gt;x5&lt;/b&gt;&lt;br/&gt; &lt;br/&gt;Ind. Oss.: 0&gt; peripheries=2]
+}
+
+</diagnosticatore><commento>
+Timestamp: 12/01/2021 20:54:22
+Compito 4 - Generazione del Diagnosticatore per lo spazio comportamentale in ingresso: 
+	Tempo di generazione del Diagnosticatore: 0.015625s
+Statistiche sul Diagnosticatore: 
+	Numero stati del diagnosticatore: 4
+	Numero stati finali del diagnosticatore: 3
+	Numero stati nelle chiusure: 7
+	Numero transizioni non osservabili (nelle chiusure): 7
+	Numero transizioni osservabili (fra gli stati del diagnosticatore): 4
+</commento><base64>gASVJAoAAAAAAABOjAhfX21haW5fX5SMD0RpYWdub3N0aWNhdG9yZZSTlCmBlH2UKIwEbm9kaZRdlChoAIwETm9kb5STlCmBlH2UKIwEbm9tZZSMAngwlIwFc3RhdGmUXZSMDWNvbnRlbnV0b0xpbmuUXZSMCGlzUG90YXRvlImMCGlzRmluYWxllIiMEmluZGljZU9zc2VydmF6aW9uZZRLAIwMYXJjaGlVc2NlbnRplF2UaACMBEFyY2+Uk5QpgZR9lCiMBW5vZG8wlGgJjAVub2RvMZRoCCmBlH2UKGgLjAJ4MZRoDV2UaA9dlGgRiWgSiWgTSwBoFF2UaBcpgZR9lChoGmgcaBtoCCmBlH2UKGgLjAJ4MpRoDV2UaA9dlGgRiWgSiGgTSwBoFF2UKGgXKYGUfZQoaBpoJGgbaAgpgZR9lChoC4wCeDWUaA1dlGgPXZRoEYloEohoE0sAaBRdlIwIY2hpdXN1cmGUaACMCENoaXVzdXJhlJOUKYGUfZQojApub2RpVXNjaXRhlF2UjBBub2RpQWNjZXR0YXppb25llF2UaAgpgZR9lChoC4wBNZRoDV2UKGgAjAVTdGF0b5STlCmBlH2UKGgLjANnaXWUjBJ0cmFuc2l6aW9uaVVzY2VudGmUXZQoaACMC1RyYW5zaXppb25llJOUKYGUfZQoaAuMAWKUjAZzdGF0bzCUaEGMBnN0YXRvMZRoQCmBlH2UKGgLjAJzdZRoRF2UKGhHKYGUfZQoaAuMAWGUaEtoTWhMaEGMEGV2ZW50b05lY2Vzc2FyaW+UTowMZXZlbnRpT3V0cHV0lF2UaACMBkJ1ZmZlcpSTlCmBlH2UKIwEbGlua5RoAIwETGlua5STlCmBlH2UKGgLjAJMMpSMDmNvbXBvcnRhbWVudG8wlGgAjA1Db21wb3J0YW1lbnRvlJOUKYGUfZQoaAuMCFBVTFNBTlRFlGgNXZQoaE1oQWWMC3RyYW5zaXppb25plF2UKGhRaEhoRymBlH2UKGgLjAFllGhLaE1oTGhNaFROaFVdlGhYKYGUfZQoaFtoXowGZXZlbnRvlIwHcHVudGFzdZR1YmGMDW9zc2VydmFiaWxpdGGUjAFzlIwJcmlsZXZhbnphlIwGc2NyaXZvlHViaEcpgZR9lChoC4wBZpRoS2hBaExoQWhUaFgpgZR9lChoW2hd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</base64></compito4>

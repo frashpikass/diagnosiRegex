@@ -1,7 +1,7 @@
-<compito5><osservazioneLineare>['o1']</osservazioneLineare><commento>
-Timestamp: 12/01/2021 01:55:04
+<compito5><osservazioneLineare>['o3', 'o2']</osservazioneLineare><commento>
+Timestamp: 12/01/2021 20:37:12
 Compito 5 - Calcolo della diagnosi, a partire dal diagnosticatore per la rete: 
 	Tempo di calcolo della diagnosi con espressioniRegolari: 0.0s
-	Osservazione Lineare: ['o1']
-	Diagnosi Lineare: f1f3|f1f1|f1|f3f1|ε|f3
+	Osservazione Lineare: ['o3', 'o2']
+	Diagnosi Lineare: f|fr|ε|frf
 </commento><base64>gASVBQAAAAAAAABOToaULg==</base64></compito5>

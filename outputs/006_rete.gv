@@ -1,0 +1,98 @@
+digraph ReteFA {
+    graph [compound=true]
+    node [shape=record]
+    // LINKS
+    cMangiare_start -> cMangiare_start [label="L1" ltail=cluster_Mangiare lhead=cluster_Mangiare]
+	cMangiare_start -> cDormire_start [label="L2" ltail=cluster_Mangiare lhead=cluster_Dormire]
+	cGuardia_start -> cDormire_start [label="L3" ltail=cluster_Guardia lhead=cluster_Dormire]
+	cGuardia_start -> cGuardia_start [label="L4" ltail=cluster_Guardia lhead=cluster_Guardia]
+	cMangiare_start -> cGuardia_start [label="MG" ltail=cluster_Mangiare lhead=cluster_Guardia]
+
+    // COMPORTAMENTI
+    subgraph cluster_Mangiare {
+        node [shape=ellipse]
+        label = <<b>Mangiare</b>
+		<br/>m1: /{fame(L2) fame(MG)}
+		<br/>m2: 
+		<br/>m3: /{cibo(L1)}
+		<br/>m4: cibo(L1)/{soddisfazione(L2) soddisfazione(MG)}
+		<br/>m5: 
+		<br/>m6: cibo(L1)
+		<br/>m7: cibo(L1)>
+        
+        // Transizioni
+        cMangiare_start -> cMangiare_Pancia_vuota
+		cMangiare_Pancia_vuota -> cMangiare_Cerca_cibo [label=<m1<br/><font color="red">Affamato</font>>]
+		cMangiare_Cerca_cibo -> cMangiare_Cerca_cibo [label=<m2<br/><font color="green4">Agitato</font>>]
+		cMangiare_Cerca_cibo -> cMangiare_Mangia [label=<m3<br/><font color="green4">Mangia</font>>]
+		cMangiare_Mangia -> cMangiare_Pancia_piena [label=<m4<br/><font color="red">Pieno</font>>]
+		cMangiare_Mangia -> cMangiare_Cerca_cibo [label=<m6>]
+		cMangiare_Pancia_piena -> cMangiare_Pancia_vuota [label=<m5<br/><font color="red">Digestione_finita</font>>]
+		cMangiare_Pancia_piena -> cMangiare_Pancia_piena [label=<m7<br/><font color="green4">Calmo</font>>]
+
+        // Stati
+        cMangiare_start [style=invis]
+		cMangiare_Pancia_vuota [label=<<b>Pancia_vuota</b>>]
+		cMangiare_Cerca_cibo [label=<<b>Cerca_cibo</b>>]
+		cMangiare_Mangia [label=<<b>Mangia</b>>]
+		cMangiare_Pancia_piena [label=<<b>Pancia_piena</b>>]
+    }
+
+	subgraph cluster_Dormire {
+        node [shape=ellipse]
+        label = <<b>Dormire</b>
+		<br/>d1: soddisfazione(L2)
+		<br/>d2: soddisfazione(L3)
+		<br/>d3: intruso(L3)
+		<br/>d4: fame(L2)
+		<br/>d5: 
+		<br/>d6: 
+		<br/>d7: 
+		<br/>d8: >
+        
+        // Transizioni
+        cDormire_start -> cDormire_Sveglio
+		cDormire_Sveglio -> cDormire_Addormentato [label=<d1>]
+		cDormire_Sveglio -> cDormire_Addormentato [label=<d2>]
+		cDormire_Sveglio -> cDormire_Sveglio [label=<d5<br/><font color="green4">Sveglio</font>>]
+		cDormire_Sveglio -> cDormire_Sveglio [label=<d6<br/><font color="green4">Dorme</font>>]
+		cDormire_Sveglio -> cDormire_Addormentato [label=<d7<br/><font color="red">Sonno</font>>]
+		cDormire_Addormentato -> cDormire_Sveglio [label=<d3>]
+		cDormire_Addormentato -> cDormire_Sveglio [label=<d4>]
+		cDormire_Addormentato -> cDormire_Sveglio [label=<d8>]
+
+        // Stati
+        cDormire_start [style=invis]
+		cDormire_Sveglio [label=<<b>Sveglio</b>>]
+		cDormire_Addormentato [label=<<b>Addormentato</b>>]
+    }
+
+	subgraph cluster_Guardia {
+        node [shape=ellipse]
+        label = <<b>Guardia</b>
+		<br/>g1: intruso(L4)/{intruso(L4) intruso(L3)}
+		<br/>g2: intruso(L4)/{soddisfazione(L4) soddisfazione(L3)}
+		<br/>g3: soddisfazione(MG)
+		<br/>g4: 
+		<br/>g5: /{intruso(L4)}
+		<br/>g6: soddisfazione(L4)
+		<br/>g7: 
+		<br/>g8: fame(MG)>
+        
+        // Transizioni
+        cGuardia_start -> cGuardia_Calmo
+		cGuardia_Calmo -> cGuardia_Attento [label=<g1<br/><font color="green4">Agitato</font>>]
+		cGuardia_Calmo -> cGuardia_Calmo [label=<g4<br/><font color="green4">Calmo</font>>]
+		cGuardia_Calmo -> cGuardia_Calmo [label=<g5>]
+		cGuardia_Calmo -> cGuardia_Attento [label=<g8>]
+		cGuardia_Attento -> cGuardia_Attento [label=<g2<br/><font color="green4">Abbaia</font><br/><font color="red">Intruso</font>>]
+		cGuardia_Attento -> cGuardia_Calmo [label=<g3>]
+		cGuardia_Attento -> cGuardia_Calmo [label=<g6<br/><font color="red">No_intruso</font>>]
+		cGuardia_Attento -> cGuardia_Attento [label=<g7<br/><font color="green4">Abbaia</font>>]
+
+        // Stati
+        cGuardia_start [style=invis]
+		cGuardia_Calmo [label=<<b>Calmo</b>>]
+		cGuardia_Attento [label=<<b>Attento</b>>]
+    }
+}
