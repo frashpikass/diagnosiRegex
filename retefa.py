@@ -3,6 +3,7 @@ File di descrizione degli elementi della struttura dati in input.
 """
 from functools import singledispatchmethod
 from typing import List, Dict
+from collections import deque
 import xmlschema
 import copy
 import xml.etree.ElementTree as ET
@@ -2413,6 +2414,51 @@ class Log:
         Log.stats = []
         Log.tempo = 0
 
+class Tasklist:
+    """
+    Classe che gestisce una lista di compiti da fare, eliminando quelli già svolti man mano che sono completati, e che
+    permette di salvare nei log i task non ancora completati
+    """
+
+    def __init__(self, nomi_task: List[str]):
+        """
+        Costruttore
+        :param nomi_task: lista di stringhe contenente la lista di task da svolgere
+        """
+        """Task da svolgere"""
+        self.tasks = deque(nomi_task)
+        """Task completati"""
+        self.done = []
+
+    def do_first(self):
+        """
+        Segna come completato il primo task della lista e lo ritorna.
+        :return: il task completato
+        """
+        if self.tasks:
+            ret = self.tasks.popleft()
+            self.done.append(ret)
+            return ret
+        else:
+            return None
+
+    def __str__(self):
+        print("Task completati: \n\t"+"\n\t".join(self.done))
+        print("\n\nTask non completati: \n\t" + "\n\t".join(self.tasks))
+
+    def print_non_completati(self, contesto=None):
+        """
+        Stampa i task non completati in un determinato contesto
+        :param contesto: nome del contesto
+        """
+        if contesto:
+            contesto = " in " + contesto
+        else:
+            contesto = ""
+
+        print(f"Task non completati{contesto}:\n\t" + "\n\t".join(self.tasks))
+
+
 
 class Main:
     """
@@ -2514,7 +2560,10 @@ class Main:
         commento_elem.text = "\n" + Log.print() + "\n"
 
         base64_elem = ET.SubElement(root, "base64")
-        base64_elem.text = str(b64encode(dumps((rete, sc))), 'utf-8')
+        try:
+            base64_elem.text = str(b64encode(dumps((rete, sc))), 'utf-8')
+        except Exception as e:
+            base64_elem.text = f"Errore nel salvataggio della rete, {e}"
 
         with open(filename_xml, 'wb') as fileXML:
             t.write(fileXML, encoding="utf-8", short_empty_elements=False)
@@ -2566,26 +2615,41 @@ class Main:
         :param output_path: il percorso su disco dove salvare il file XML che descrive l'output di Compito1
         :return: la coppia ReteFA, SpazioComportamentale
         """
-        Log.logtime()
-        Log.new("Compito 1 - generazione dello Spazio Comportamentale a partire dalla rete", f"{reteFA_xml_path}")
-        Log.cronometro()
-        rete = ReteFA.fromXML(reteFA_xml_path)
-        Log.new("\tTempo di generazione della ReteFA da XML", f"{Log.cronometro()}s")
-        rete.logStats()
+        tasks = Tasklist(["Generazione di ReteFA da XML",
+                          "Generazione di SC da ReteFA",
+                          "Potatura e Ridenominazione",
+                          "Generazione file output"])
+        try:
+            Log.logtime()
+            Log.new("Compito 1 - generazione dello Spazio Comportamentale a partire dalla rete", f"{reteFA_xml_path}")
+            Log.cronometro()
+            rete = ReteFA.fromXML(reteFA_xml_path)
+            Log.new("\tTempo di generazione della ReteFA da XML", f"{Log.cronometro()}s")
+            rete.logStats()
+            tasks.do_first()
 
-        Log.new("Generazione dello Spazio Comportamentale","")
-        Log.cronometro()
-        sc = SpazioComportamentale()
-        sc.creaSpazioComportamentale(rete)
-        Log.new("\tTempo di generazione dello SpazioComportamentale da ReteFA", f"{Log.cronometro()}s")
-        sc.potaturaRidenominazione()
-        Log.new("\tTempo di potatura dello SpazioComportamentale", f"{Log.cronometro()}s")
-        sc.logStats()
+            Log.new("Generazione dello Spazio Comportamentale","")
+            Log.cronometro()
+            sc = SpazioComportamentale()
+            sc.creaSpazioComportamentale(rete)
+            Log.new("\tTempo di generazione dello SpazioComportamentale da ReteFA", f"{Log.cronometro()}s")
+            tasks.do_first()
 
-        # Genera file in output
-        Main.outputSerializer("compito1", rete, sc, output_path=output_path)
+            sc.potaturaRidenominazione()
+            Log.new("\tTempo di potatura dello SpazioComportamentale", f"{Log.cronometro()}s")
+            sc.logStats()
+            tasks.do_first()
 
-        return rete, sc
+            # Genera file in output
+            Main.outputSerializer("compito1", rete, sc, output_path=output_path)
+            tasks.do_first()
+
+            return rete, sc
+        except KeyboardInterrupt:
+            print("Esecuzione di Compito 1 interrotta dall'utente.")
+            tasks.print_non_completati("Compito 1")
+            raise KeyboardInterrupt # Rilancia al main
+
 
     @singledispatchmethod
     @staticmethod
@@ -2601,79 +2665,83 @@ class Main:
         :param output_path: il percorso su disco dove salvare il file XML che descrive l'output di Compito 2
         :return: la coppia ReteFA, SpazioComportamentale
         """
-        # Log.new("\nCompito 2 - Generazione dello Spazio Comportamentale relativo all'Osservazione lineare","")
-        # Log.new("Rete FA in input XML", f"{reteFA}")
-        # Log.new("Osservazione Lineare", f"{osservazioneLineare}")
-        # Log.cronometro()
-        # rete = ReteFA.fromXML(reteFA)
-        # Log.new("\tTempo di generazione della ReteFA da XML", f"{Log.cronometro()}s")
-        # rete.logStats()
-        #
-        # Log.new("Generazione dello SCOL", f"")
-        # Log.cronometro()
-        # scol = SpazioComportamentale()
-        # scol.creaSpazioComportamentaleOsservazioneLineare(rete, osservazioneLineare)
-        # scol.logStats()
-        # Log.new("\tTempo di generazione dello Spazio Comportamentale relativo all'Osservazione Lineare da ReteFA",
-        #         f"{Log.cronometro()}s")
-        # scol.potaturaRidenominazione()
-        # Log.new("\tTempo di potatura dello SpazioComportamentale relativo all'Osservazione Lineare", f"{Log.cronometro()}s")
-        #
-        # # Genera file in output
-        # Main.outputSerializer("compito2", rete, sc, output_path=output_path, osservazioneLineare=osservazioneLineare)
-        #
-        # return rete, scol
         raise NotImplementedError("Il tipo di reteFA in input alla funzione compito2 non è valido.")
 
     @compito2.register(str)
     @staticmethod
     def _(reteFA: str, osservazioneLineare: List[str], output_path: str) -> (ReteFA, SpazioComportamentale):
-        Log.logtime()
-        Log.new("\nCompito 2 - Generazione dello Spazio Comportamentale relativo all'Osservazione lineare", "")
-        Log.new("\tRete FA in input XML", f"{reteFA}")
-        Log.new("\tOsservazione Lineare", f"{osservazioneLineare}")
-        Log.cronometro()
-        rete = ReteFA.fromXML(reteFA)
-        Log.new("\tTempo di generazione della ReteFA da XML", f"{Log.cronometro()}s")
-        rete.logStats()
+        tasks = Tasklist(["Generazione di ReteFA da XML",
+                          "Generazione di SCOL da ReteFA e OL",
+                          "Potatura e Ridenominazione",
+                          "Generazione file output"])
+        try:
+            Log.logtime()
+            Log.new("\nCompito 2 - Generazione dello Spazio Comportamentale relativo all'Osservazione lineare", "")
+            Log.new("\tRete FA in input XML", f"{reteFA}")
+            Log.new("\tOsservazione Lineare", f"{osservazioneLineare}")
+            Log.cronometro()
+            rete = ReteFA.fromXML(reteFA)
+            Log.new("\tTempo di generazione della ReteFA da XML", f"{Log.cronometro()}s")
+            rete.logStats()
+            tasks.do_first()
 
-        Log.new("Generazione dello SCOL", f"")
-        Log.cronometro()
-        scol = SpazioComportamentale()
-        scol.creaSpazioComportamentaleOsservazioneLineare(rete, osservazioneLineare)
-        scol.logStats()
-        Log.new("\tTempo di generazione dello Spazio Comportamentale relativo all'Osservazione Lineare da ReteFA",
-                f"{Log.cronometro()}s")
-        scol.potaturaRidenominazione()
-        Log.new("\tTempo di potatura dello SpazioComportamentale relativo all'Osservazione Lineare",
-                f"{Log.cronometro()}s")
+            Log.new("Generazione dello SCOL", f"")
+            Log.cronometro()
+            scol = SpazioComportamentale()
+            scol.creaSpazioComportamentaleOsservazioneLineare(rete, osservazioneLineare)
+            scol.logStats()
+            Log.new("\tTempo di generazione dello Spazio Comportamentale relativo all'Osservazione Lineare da ReteFA",
+                    f"{Log.cronometro()}s")
+            tasks.do_first()
 
-        # Genera file in output
-        Main.outputSerializer("compito2", rete, scol, output_path=output_path, osservazioneLineare=osservazioneLineare)
+            scol.potaturaRidenominazione()
+            Log.new("\tTempo di potatura dello SpazioComportamentale relativo all'Osservazione Lineare",
+                    f"{Log.cronometro()}s")
+            tasks.do_first()
 
-        return rete, scol
+            # Genera file in output
+            Main.outputSerializer("compito2", rete, scol, output_path=output_path, osservazioneLineare=osservazioneLineare)
+            tasks.do_first()
+
+            return rete, scol
+        except KeyboardInterrupt:
+            print("Esecuzione di Compito 2 interrotta dall'utente.")
+            tasks.print_non_completati("Compito 2")
+            raise KeyboardInterrupt  # Rilancia al main
 
     @compito2.register(ReteFA)
     @staticmethod
     def _(reteFA: ReteFA, osservazioneLineare: List[str], output_path: str) -> (ReteFA, SpazioComportamentale):
-        Log.logtime()
-        Log.new("\nCompito 2 - Generazione dello Spazio Comportamentale relativo all'Osservazione lineare", "")
-        Log.new("Rete FA in input", f"Recuperata da una run precedente")
-        Log.new("Osservazione Lineare", f"{osservazioneLineare}")
+        tasks = Tasklist(["Generazione di SCOL da ReteFA e OL",
+                          "Potatura e Ridenominazione",
+                          "Generazione file output"])
+        try:
+            Log.logtime()
+            Log.new("\nCompito 2 - Generazione dello Spazio Comportamentale relativo all'Osservazione lineare", "")
+            Log.new("Rete FA in input", f"Recuperata da una run precedente")
+            Log.new("Osservazione Lineare", f"{osservazioneLineare}")
 
-        Log.cronometro()
-        scol = SpazioComportamentale()
-        scol.creaSpazioComportamentaleOsservazioneLineare(reteFA, osservazioneLineare)
-        Log.new("\tTempo di generazione dello Spazio Comportamentale relativo all'Osservazione Lineare da ReteFA",
-                f"{Log.cronometro()}s")
-        scol.potaturaRidenominazione()
-        Log.new("\tTempo di potatura dello SpazioComportamentale relativo all'Osservazione Lineare",
-                f"{Log.cronometro()}s")
+            Log.cronometro()
+            scol = SpazioComportamentale()
+            scol.creaSpazioComportamentaleOsservazioneLineare(reteFA, osservazioneLineare)
+            Log.new("\tTempo di generazione dello Spazio Comportamentale relativo all'Osservazione Lineare da ReteFA",
+                    f"{Log.cronometro()}s")
+            tasks.do_first()
 
-        # Genera file in output
-        Main.outputSerializer("compito2", reteFA, scol, output_path=output_path, osservazioneLineare=osservazioneLineare)
+            scol.potaturaRidenominazione()
+            Log.new("\tTempo di potatura dello SpazioComportamentale relativo all'Osservazione Lineare",
+                    f"{Log.cronometro()}s")
+            tasks.do_first()
 
-        return reteFA, scol
+            # Genera file in output
+            Main.outputSerializer("compito2", reteFA, scol, output_path=output_path, osservazioneLineare=osservazioneLineare)
+            tasks.do_first()
+
+            return reteFA, scol
+        except KeyboardInterrupt:
+            print("Esecuzione di Compito 2 interrotta dall'utente.")
+            tasks.print_non_completati("Compito 2")
+            raise KeyboardInterrupt  # Rilancia al main
 
     @staticmethod
     def compito3(scol: SpazioComportamentale, osservazioneLineare: List[str], output_path: str, debug_on=False) -> str:
@@ -2686,24 +2754,33 @@ class Main:
         :param output_path: il percorso su disco dove salvare il file XML che descrive l'output di Compito 3
         :return: la stringa di diagnosi relativa all'osservazione lineare data sulla ReteFA
         """
-        # Imposto la posizione dell'output del debug
-        debug_path = output_path + "/debug"
+        tasks = Tasklist(["Calcolo diagnosi con espressioneRegolare",
+                          "Generazione file output"])
+        try:
+            # Imposto la posizione dell'output del debug
+            debug_path = output_path + "/debug"
 
-        Log.logtime()
-        Log.new("Compito 3 - Calcolo della diagnosi, a partire dallo spazio comportamentale relativo "
-                "all'osservazione lineare", "")
+            Log.logtime()
+            Log.new("Compito 3 - Calcolo della diagnosi, a partire dallo spazio comportamentale relativo "
+                    "all'osservazione lineare", "")
 
-        Log.cronometro()
-        diagnosi = scol.espressioneRegolare(debug_on=debug_on, debug_path=debug_path)
-        Log.new("\tTempo di calcolo della diagnosi con espressioneRegolare",
-                f"{Log.cronometro()}s")
-        Log.new("\tOsservazione Lineare", f"{osservazioneLineare}")
-        Log.new("\tDiagnosi Lineare", f"{diagnosi}")
+            Log.cronometro()
+            diagnosi = scol.espressioneRegolare(debug_on=debug_on, debug_path=debug_path)
+            Log.new("\tTempo di calcolo della diagnosi con espressioneRegolare",
+                    f"{Log.cronometro()}s")
+            Log.new("\tOsservazione Lineare", f"{osservazioneLineare}")
+            Log.new("\tDiagnosi Lineare", f"{diagnosi}")
+            tasks.do_first()
 
-        # Genera file in output
-        Main.outputSerializer("compito3", rete=None, sc=scol, output_path=output_path, osservazioneLineare=osservazioneLineare)
+            # Genera file in output
+            Main.outputSerializer("compito3", rete=None, sc=scol, output_path=output_path, osservazioneLineare=osservazioneLineare)
+            tasks.do_first()
 
-        return diagnosi
+            return diagnosi
+        except KeyboardInterrupt:
+            print("Esecuzione di Compito 3 interrotta dall'utente.")
+            tasks.print_non_completati("Compito 3")
+            raise KeyboardInterrupt  # Rilancia al main
 
     @staticmethod
     def compito4(spazio: SpazioComportamentale, output_path: str) -> Diagnosticatore:
@@ -2716,19 +2793,28 @@ class Main:
         :param output_path: il percorso su disco dove salvare il file XML che descrive l'output di Compito 4
         :return: il Diagnosticatore corrispondente
         """
-        Log.logtime()
-        Log.new("Compito 4 - Generazione del Diagnosticatore per lo spazio comportamentale in ingresso","")
+        tasks = Tasklist(["Genera Diagnosticatore a partire da SC (con espressioniRegloari)",
+                          "Generazione file output"])
+        try:
+            Log.logtime()
+            Log.new("Compito 4 - Generazione del Diagnosticatore per lo spazio comportamentale in ingresso","")
 
-        Log.cronometro()
-        diagnosticatore = spazio.generaDiagnosticatore()
-        Log.new("\tTempo di generazione del Diagnosticatore",
-                f"{Log.cronometro()}s")
-        diagnosticatore.logStats()
+            Log.cronometro()
+            diagnosticatore = spazio.generaDiagnosticatore()
+            Log.new("\tTempo di generazione del Diagnosticatore",
+                    f"{Log.cronometro()}s")
+            diagnosticatore.logStats()
+            tasks.do_first()
 
-        # Genera file in output
-        Main.outputSerializer("compito4", rete=None, sc=diagnosticatore, output_path=output_path)
+            # Genera file in output
+            Main.outputSerializer("compito4", rete=None, sc=diagnosticatore, output_path=output_path)
+            tasks.do_first()
 
-        return diagnosticatore
+            return diagnosticatore
+        except KeyboardInterrupt:
+            print("Esecuzione di Compito 4 interrotta dall'utente.")
+            tasks.print_non_completati("Compito 4")
+            raise KeyboardInterrupt  # Rilancia al main
 
     @staticmethod
     def compito5(diag: Diagnosticatore, osservazioneLineare: List[str], output_path: str) -> str:
@@ -2743,19 +2829,30 @@ class Main:
         :param output_path: il percorso su disco dove salvare il file XML che descrive l'output di Compito 4
         :return: la stringa di diagnosi relativa all'osservazione lineare data sulla ReteFA
         """
-        Log.logtime()
-        Log.new("Compito 5 - Calcolo della diagnosi, a partire dal diagnosticatore per la rete", "")
+        tasks = Tasklist(["Calcolo della diagnosi a partire da Diagnosticatore ed Osservazione Lineare",
+                          "Generazione file output"])
+        try:
+            Log.logtime()
+            Log.new("Compito 5 - Calcolo della diagnosi, a partire dal diagnosticatore per la rete", "")
 
-        Log.cronometro()
-        diagnosi = diag.diagnosiLineare(osservazioneLineare)
-        Log.new("\tTempo di calcolo della diagnosi con espressioniRegolari",
-                f"{Log.cronometro()}s")
-        Log.new("\tOsservazione Lineare", f"{osservazioneLineare}")
-        Log.new("\tDiagnosi Lineare", f"{diagnosi}")
-        # Genera file in output
-        Main.outputSerializer("compito5", rete=None, sc=None, output_path=output_path, osservazioneLineare=osservazioneLineare)
+            Log.cronometro()
+            diagnosi = diag.diagnosiLineare(osservazioneLineare)
+            Log.new("\tTempo di calcolo della diagnosi con espressioniRegolari",
+                    f"{Log.cronometro()}s")
+            Log.new("\tOsservazione Lineare", f"{osservazioneLineare}")
+            Log.new("\tDiagnosi Lineare", f"{diagnosi}")
+            tasks.do_first()
 
-        return diagnosi
+
+            # Genera file in output
+            Main.outputSerializer("compito5", rete=None, sc=None, output_path=output_path, osservazioneLineare=osservazioneLineare)
+            tasks.do_first()
+
+            return diagnosi
+        except KeyboardInterrupt:
+            print("Esecuzione di Compito 5 interrotta dall'utente.")
+            tasks.print_non_completati("Compito 5")
+            raise KeyboardInterrupt  # Rilancia al main
 
     def fromCompito2(xmlPath: str):
         """
@@ -2810,6 +2907,7 @@ class Main:
         diag = Diagnosticatore()
         xsdPath = 'inputs/output_compito4.xsd'
         schema = xmlschema.XMLSchema(xsdPath)
+        reteFA = None
         if schema.is_valid(xmlPath):
             tree = ET.parse(source=xmlPath)
             root = tree.getroot()
@@ -2891,138 +2989,184 @@ if __name__ == '__main__':
 
     t = time.time()
 
-    # Log iniziale
-    Log.logtime("Inizio esecuzione")
-    Log.new("Compito", args.compito)
-    Log.new("File input", args.reteFA)
-    Log.new("Path input", args.outputPath)
+    # Definisco la tasklist
+    main_tasks = []
 
-    # Logica di gestione degli input
-    if args.compito == 1:
-        # controllo validità input
-        if args.reteFA is not None:
-            s1, r1 = Main.compito1(args.reteFA, args.outputPath)
-        else:
-            print('Rete FA non inserita')
-    elif args.compito == 2:
-        # controllo validità input
-        if args.reteFA is not None:
-            if args.ol is not None:
-                ol = args.ol.strip(']["').split(',')
-                r2a, scol = Main.compito2(args.reteFA, ol, args.outputPath)
+    # Blocco Try/Except per gestire KeyboardInterrupt
+    try:
+        # Log iniziale
+        Log.logtime("Inizio esecuzione")
+        Log.new("Compito", args.compito)
+        Log.new("File input", args.reteFA)
+        Log.new("Path input", args.outputPath)
+
+        # Logica di gestione degli input
+        if args.compito == 1:
+            main_tasks = Tasklist(["compito1"])
+            # controllo validità input
+            if args.reteFA is not None:
+                s1, r1 = Main.compito1(args.reteFA, args.outputPath)
+                #Esegui un task
+                main_tasks.do_first()
             else:
-                print('Osservazione Lineare non inserita')
-        else:
-            print('rete FA non inserita')
-    elif args.compito == 3:
-        # controllo validità input
-        if not args.precedente:
+                print('Rete FA non inserita')
+        elif args.compito == 2:
+            main_tasks = Tasklist(["compito2"])
+            # controllo validità input
             if args.reteFA is not None:
                 if args.ol is not None:
                     ol = args.ol.strip(']["').split(',')
                     r2a, scol = Main.compito2(args.reteFA, ol, args.outputPath)
-                    d3 = Main.compito3(scol, args.outputPath, debug_on=args.debugInfo)
-                    print(f"Diagnosi ottenuta da compito 3: {d3}")
+                    # Esegui un task
+                    main_tasks.do_first() # segna come fatto il task
                 else:
                     print('Osservazione Lineare non inserita')
             else:
                 print('rete FA non inserita')
-        elif args.precedente:
-            if args.fileOutput is not None:
-                reteFA, scol, ol = Main.fromCompito2(args.fileOutput)
-                d3 = Main.compito3(scol, ol, args.outputPath, debug_on=args.debugInfo)
-                print(f"Diagnosi ottenuta da compito 3: {d3}")
-            else:
-                print('percorso file non inserito')
-        else:
-            print('parametri non validi')
-    elif args.compito == 4:
-        # controllo validità input
-        if not args.precedente:
-            if args.reteFA is not None:
-                reteFA, sc = Main.compito1(args.reteFA, args.outputPath)
-                diagnosticatore4 = Main.compito4(sc, args.outputPath)
-            else:
-                print('rete FA non inserita')
-        elif args.precedente:
-            if args.fileOutput is not None:
-                reteFA, sc = Main.fromCompito1(args.fileOutput)
-                diagnosticatore4 = Main.compito4(sc, args.outputPath)
-            else:
-                print('percorso file non inserito')
-        else:
-            print('parametri non validi')
-    elif args.compito == 5:
-        # controllo validità input
-        if not args.precedente:
-            if args.reteFA is not None:
-                if args.ol is not None:
-                    ol = args.ol.strip(']["').split(',')
-                    r1, s1 = Main.compito1(args.reteFA, args.outputPath)
-                    diagnosticatore4 = Main.compito4(s1, args.outputPath)
-                    d5 = Main.compito5(diagnosticatore4, ol, args.outputPath)
-                    print(f"Diagnosi ottenuta da Diagnosticatore: {d5}")
-            else:
-                print('Rete FA non inserita!')
-        elif args.precedente:
-            if args.fileOutput is not None:
+        elif args.compito == 3:
+            # controllo validità input
+            if not args.precedente:
+                if args.reteFA is not None:
                     if args.ol is not None:
+                        main_tasks = Tasklist(["compito2", "compito3"]) # fisso i task
                         ol = args.ol.strip(']["').split(',')
-                        reteFA, diag = Main.fromCompito4(args.fileOutput)
-                        #d5 = Main.compito5(diag, ol, "")
-                        d5 = Main.compito5(diag, ol, args.outputPath)
-                        print(f"Diagnosi ottenuta da Diagnosticatore: {d5}")
+                        r2a, scol = Main.compito2(args.reteFA, ol, args.outputPath)
+                        main_tasks.do_first()  # segna come fatto il task compito2
+                        d3 = Main.compito3(scol, args.outputPath, debug_on=args.debugInfo)
+                        main_tasks.do_first()  # segna come fatto il task compito3
+                        print(f"Diagnosi ottenuta da compito 3: {d3}")
                     else:
                         print('Osservazione Lineare non inserita')
+                else:
+                    print('rete FA non inserita')
+            elif args.precedente:
+                if args.fileOutput is not None:
+                    main_tasks = Tasklist(["Recupera ReteFA, SCOL, OL da compito 2", "compito3"]) # fisso i task
+                    reteFA, scol, ol = Main.fromCompito2(args.fileOutput)
+                    main_tasks.do_first()  # segna come fatto il task compito2
+                    d3 = Main.compito3(scol, ol, args.outputPath, debug_on=args.debugInfo)
+                    main_tasks.do_first()  # segna come fatto il task compito3
+                    print(f"Diagnosi ottenuta da compito 3: {d3}")
+                else:
+                    print('percorso file non inserito')
             else:
-                print('Percorso file non inserito')
-        else:
-            print('Parametri in input non validi')
+                print('parametri non validi')
+        elif args.compito == 4:
+            # controllo validità input
+            if not args.precedente:
+                if args.reteFA is not None:
+                    main_tasks = Tasklist(["compito1", "compito4"])  # fisso i task
+                    reteFA, sc = Main.compito1(args.reteFA, args.outputPath)
+                    main_tasks.do_first()  # segna come fatto il task compito1
+                    diagnosticatore4 = Main.compito4(sc, args.outputPath)
+                    main_tasks.do_first()  # segna come fatto il task compito4
+                else:
+                    print('rete FA non inserita')
+            elif args.precedente:
+                if args.fileOutput is not None:
+                    main_tasks = Tasklist(["Recupera ReteFA, SC da compito 1", "compito4"])  # fisso i task
+                    reteFA, sc = Main.fromCompito1(args.fileOutput)
+                    main_tasks.do_first()  # segna come fatto il task compito1
+                    diagnosticatore4 = Main.compito4(sc, args.outputPath)
+                    main_tasks.do_first()  # segna come fatto il task compito4
+                else:
+                    print('percorso file non inserito')
+            else:
+                print('parametri non validi')
+        elif args.compito == 5:
+            # controllo validità input
+            if not args.precedente:
+                if args.reteFA is not None:
+                    if args.ol is not None:
+                        main_tasks = Tasklist(["compito1", "compito4", "compito5"])  # fisso i task
+                        ol = args.ol.strip(']["').split(',')
+                        r1, s1 = Main.compito1(args.reteFA, args.outputPath)
+                        main_tasks.do_first()  # segna come fatto il task compito1
+                        diagnosticatore4 = Main.compito4(s1, args.outputPath)
+                        main_tasks.do_first()  # segna come fatto il task compito4
+                        d5 = Main.compito5(diagnosticatore4, ol, args.outputPath)
+                        main_tasks.do_first()  # segna come fatto il task compito5
+                        print(f"Diagnosi ottenuta da Diagnosticatore: {d5}")
+                else:
+                    print('Rete FA non inserita!')
+            elif args.precedente:
+                if args.fileOutput is not None:
+                        if args.ol is not None:
+                            main_tasks = Tasklist(["Recupera il diagnosticatore da compito4", "compito5"])  # fisso i task
+                            ol = args.ol.strip(']["').split(',')
+                            reteFA, diag = Main.fromCompito4(args.fileOutput)
+                            main_tasks.do_first()  # segna come fatto il task compito4
+                            d5 = Main.compito5(diag, ol, "")
+                            main_tasks.do_first()  # segna come fatto il task compito1
+                            print(f"Diagnosi ottenuta da Diagnosticatore: {d5}")
+                        else:
+                            print('Osservazione Lineare non inserita')
+                else:
+                    print('Percorso file non inserito')
+            else:
+                print('Parametri in input non validi')
 
-    elapsed = time.time() - t
-    print(f"Tempo di esecuzione: {elapsed} sec.")
+        elapsed = time.time() - t
+        print(f"Tempo di esecuzione: {elapsed}s")
+    except KeyboardInterrupt:
+        print("")
+        main_tasks.print_non_completati("Main")
+        print("\nFine dell'esecuzione.")
 
 # Target di esecuzione per il test dell'output di tutti i compiti
-if __name__ == '__main1__':
-    # xmlPath = 'inputs/input.xml'
-    # ol = ["o3", "o2"]
-    # ol = ["o3", "o2", "o3", "o2"]
-    # ol = ["o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2"]
-    # ol = ["o1","o2","o1"]
+if __name__ == '__main__':
+    main_tasks = Tasklist(["Compito 1",
+                           "Compito 2",
+                           "Compito 3",
+                           "Compito 4",
+                           "Compito 5"])
+    try:
+        # xmlPath = 'inputs/input.xml'
+        # ol = ["o3", "o2"]
+        # ol = ["o3", "o2", "o3", "o2"]
+        # ol = ["o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2","o3","o2"]
+        # ol = ["o1","o2","o1"]
 
-    # xmlPath = 'inputs/input_rete2.xml'
-    # ol = ["act", "sby", "nop"]
+        # xmlPath = 'inputs/input_rete2.xml'
+        # ol = ["act", "sby", "nop"]
 
-    xmlPath = 'inputs/input_rete3.xml'
-    ol = ["o1"]
+        xmlPath = 'inputs/input_rete3.xml'
+        ol = ["o1"]
 
-    # xmlPath = 'inputs/input_reteCane.xml'
-    # ol = ["Calmo", "Abbaia"]
+        # xmlPath = 'inputs/input_reteCane.xml'
+        # ol = ["Calmo", "Abbaia"]
 
-    # Test Output Compito 1
-    r1, s1 = Main.compito1(xmlPath, Main.DEFAULT_OUTPUT_PATH)
-    # Main.outputSerializer("compito1", r1, s1, output_path="outputs/")
+        # Test Output Compito 1
+        r1, s1 = Main.compito1(xmlPath, Main.DEFAULT_OUTPUT_PATH)
+        main_tasks.do_first()
 
-    # Test Output Compito 2
-    scol = None
-    # try:
-    r2a, scol2a = Main.compito2(xmlPath, ol, Main.DEFAULT_OUTPUT_PATH)
-    # r2b, scol2b = Main.compito2(r1, ol, Main.DEFAULT_OUTPUT_PATH)
-    # scol = scol2a if scol2a else scol2b if scol2b else None
+        # Test Output Compito 2
+        scol = None
+        r2a, scol2a = Main.compito2(xmlPath, ol, Main.DEFAULT_OUTPUT_PATH)
+        # r2b, scol2b = Main.compito2(r1, ol, Main.DEFAULT_OUTPUT_PATH)
+        # scol = scol2a if scol2a else scol2b if scol2b else None
+        main_tasks.do_first()
 
-    scol = scol2a
+        scol = scol2a
 
-    # Test Output Compito 3
-    d3 = Main.compito3(scol, ol, Main.DEFAULT_OUTPUT_PATH, debug_on=True)
+        # Test Output Compito 3
+        d3 = Main.compito3(scol, ol, Main.DEFAULT_OUTPUT_PATH, debug_on=False)
+        main_tasks.do_first()
 
-    # Test Output Compito 4
-    diagnosticatore4 = Main.compito4(s1, Main.DEFAULT_OUTPUT_PATH)
+        # Test Output Compito 4
+        diagnosticatore4 = Main.compito4(s1, Main.DEFAULT_OUTPUT_PATH)
+        main_tasks.do_first()
 
-    # Test Output Compito 5
-    d5 = Main.compito5(diagnosticatore4, ol, Main.DEFAULT_OUTPUT_PATH)
+        # Test Output Compito 5
+        d5 = Main.compito5(diagnosticatore4, ol, Main.DEFAULT_OUTPUT_PATH)
+        main_tasks.do_first()
 
-    # Stampo le diagnosi
-    print(f"Diagnosi ottenute:\nDa compito 3: {d3}\nDa compito 5: {d5}")
+        # Stampo le diagnosi
+        print(f"Diagnosi ottenute:\nDa compito 3: {d3}\nDa compito 5: {d5}")
+    except KeyboardInterrupt:
+        print("")
+        main_tasks.print_non_completati("Main")
+        print("\nFine dell'esecuzione.")
 
 
 if __name__ == '__compito 5__':

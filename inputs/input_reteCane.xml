@@ -1,0 +1,146 @@
+<?xml version='1.1' encoding='UTF-8'?>
+<retefa nome="Cane">
+
+	<comportamenti>
+		<comportamento nome="Mangiare" statoIniziale="Pancia_vuota">
+			<stati>
+				<stato nome="Pancia_vuota" />
+				<stato nome="Cerca_cibo" />
+                <stato nome="Mangia" />
+                <stato nome="Pancia_piena" />
+			</stati>
+
+			<transizioni>
+				<transizione nome="m1" stato0="Pancia_vuota" stato1="Cerca_cibo" osservabilita="" rilevanza="Affamato">
+					<eventiOutput>
+						<evento nome="fame" link="L2" />
+                        <evento nome="fame" link="MG" />
+					</eventiOutput>
+				</transizione>
+
+                <transizione nome="m2" stato0="Cerca_cibo" stato1="Cerca_cibo" osservabilita="Agitato" rilevanza="">
+				</transizione>
+
+                <transizione nome="m3" stato0="Cerca_cibo" stato1="Mangia" osservabilita="Mangia" rilevanza="">
+                    <eventiOutput>
+						<evento nome="cibo" link="L1" />
+					</eventiOutput>
+				</transizione>
+
+                <transizione nome="m4" stato0="Mangia" stato1="Pancia_piena" osservabilita="" rilevanza="Pieno">
+                    <eventoNecessario nome="cibo" link="L1" />
+                    <eventiOutput>
+						<evento nome="soddisfazione" link="L2" />
+                        <evento nome="soddisfazione" link="MG" />
+					</eventiOutput>
+				</transizione>
+
+                <transizione nome="m5" stato0="Pancia_piena" stato1="Pancia_vuota" osservabilita="" rilevanza="Digestione_finita">
+				</transizione>
+
+                <transizione nome="m6" stato0="Mangia" stato1="Cerca_cibo" osservabilita="" rilevanza="">
+                    <eventoNecessario nome="cibo" link="L1" />
+				</transizione>
+
+                <transizione nome="m7" stato0="Pancia_piena" stato1="Pancia_piena" osservabilita="Calmo" rilevanza="">
+                    <eventoNecessario nome="cibo" link="L1" />
+				</transizione>
+            </transizioni>
+		</comportamento>
+
+        <comportamento nome="Dormire" statoIniziale="Sveglio">
+			<stati>
+				<stato nome="Sveglio" />
+				<stato nome="Addormentato" />
+			</stati>
+
+			<transizioni>
+				<transizione nome="d1" stato0="Sveglio" stato1="Addormentato" osservabilita="" rilevanza="">
+					<eventoNecessario nome="soddisfazione" link="L2" />
+				</transizione>
+
+                <transizione nome="d2" stato0="Sveglio" stato1="Addormentato" osservabilita="" rilevanza="">
+					<eventoNecessario nome="soddisfazione" link="L3" />
+				</transizione>
+
+                <transizione nome="d3" stato0="Addormentato" stato1="Sveglio" osservabilita="" rilevanza="">
+					<eventoNecessario nome="intruso" link="L3" />
+				</transizione>
+
+                <transizione nome="d4" stato0="Addormentato" stato1="Sveglio" osservabilita="" rilevanza="">
+					<eventoNecessario nome="fame" link="L2" />
+				</transizione>
+
+                <transizione nome="d5" stato0="Sveglio" stato1="Sveglio" osservabilita="Sveglio" rilevanza="">
+				</transizione>
+
+                <transizione nome="d6" stato0="Sveglio" stato1="Sveglio" osservabilita="Dorme" rilevanza="">
+				</transizione>
+
+                <transizione nome="d7" stato0="Sveglio" stato1="Addormentato" osservabilita="" rilevanza="Sonno">
+				</transizione>
+
+                <transizione nome="d8" stato0="Addormentato" stato1="Sveglio" osservabilita="" rilevanza="">
+				</transizione>
+            </transizioni>
+		</comportamento>
+
+		<comportamento nome="Guardia" statoIniziale="Calmo">
+			<stati>
+				<stato nome="Calmo" />
+				<stato nome="Attento" />
+			</stati>
+
+			<transizioni>
+				<transizione nome="g1" stato0="Calmo" stato1="Attento" osservabilita="Agitato" rilevanza="">
+					<eventoNecessario nome="intruso" link="L4" />
+                    <eventiOutput>
+						<evento nome="intruso" link="L4" />
+                        <evento nome="intruso" link="L3" />
+					</eventiOutput>
+				</transizione>
+
+                <transizione nome="g2" stato0="Attento" stato1="Attento" osservabilita="Abbaia" rilevanza="Intruso">
+					<eventoNecessario nome="intruso" link="L4" />
+                    <eventiOutput>
+						<evento nome="soddisfazione" link="L4" />
+                        <evento nome="soddisfazione" link="L3" />
+					</eventiOutput>
+				</transizione>
+
+                <transizione nome="g3" stato0="Attento" stato1="Calmo" osservabilita="" rilevanza="">
+					<eventoNecessario nome="soddisfazione" link="MG" />
+				</transizione>
+
+                <transizione nome="g4" stato0="Calmo" stato1="Calmo" osservabilita="Calmo" rilevanza="">
+				</transizione>
+
+                <transizione nome="g5" stato0="Calmo" stato1="Calmo" osservabilita="" rilevanza="">
+                    <eventiOutput>
+						<evento nome="intruso" link="L4" />
+					</eventiOutput>
+				</transizione>
+
+                <transizione nome="g6" stato0="Attento" stato1="Calmo" osservabilita="" rilevanza="No_intruso">
+					<eventoNecessario nome="soddisfazione" link="L4" />
+				</transizione>
+
+                <transizione nome="g7" stato0="Attento" stato1="Attento" osservabilita="Abbaia" rilevanza="">
+				</transizione>
+
+                <transizione nome="g8" stato0="Calmo" stato1="Attento" osservabilita="" rilevanza="">
+					<eventoNecessario nome="fame" link="MG" />
+				</transizione>
+
+			</transizioni>
+		</comportamento>
+	</comportamenti>
+
+	<links>
+		<link nome="L1" comp0="Mangiare" comp1="Mangiare" />
+        <link nome="L2" comp0="Mangiare" comp1="Dormire" />
+        <link nome="L3" comp0="Guardia" comp1="Dormire" />
+        <link nome="L4" comp0="Guardia" comp1="Guardia" />
+        <link nome="MG" comp0="Mangiare" comp1="Guardia" />
+	</links>
+</retefa>
