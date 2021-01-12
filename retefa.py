@@ -2995,7 +2995,7 @@ if __name__ == '__main__':
     # Blocco Try/Except per gestire KeyboardInterrupt
     try:
         # Log iniziale
-        Log.logtime("Inizio esecuzione")
+        Log.logtime("Inizio esecuzione (Ctrl-C per interrompere)")
         Log.new("Compito", args.compito)
         Log.new("File input", args.reteFA)
         Log.new("Path input", args.outputPath)
@@ -3114,7 +3114,7 @@ if __name__ == '__main__':
         print("\nFine dell'esecuzione.")
 
 # Target di esecuzione per il test dell'output di tutti i compiti
-if __name__ == '__main__':
+if __name__ == '__main1__':
     main_tasks = Tasklist(["Compito 1",
                            "Compito 2",
                            "Compito 3",
