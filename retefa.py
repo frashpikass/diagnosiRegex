@@ -1,6 +1,7 @@
 """
 File di descrizione degli elementi della struttura dati in input.
 """
+import sys
 from functools import singledispatchmethod
 from typing import List, Dict
 from collections import deque
@@ -171,7 +172,7 @@ class ReteFA:
         Metodo per validare l'XML in input
         :return: true se l'XML è valido
         """
-        xsdPath = 'inputs/input.xsd'
+        xsdPath = 'etc/input.xsd'
         schema = xmlschema.XMLSchema(xsdPath)
         return schema.is_valid(xml)
 
@@ -2864,7 +2865,7 @@ class Main:
         reteFA = ReteFA('')
         scol = SpazioComportamentale()
         ol = None
-        xsdPath = 'inputs/output_compito2.xsd'
+        xsdPath = 'etc/output_compito2.xsd'
         schema = xmlschema.XMLSchema(xsdPath)
         if schema.is_valid(xmlPath):
             tree = ET.parse(source=xmlPath)
@@ -2887,7 +2888,7 @@ class Main:
         """
         sc = SpazioComportamentale()
         reteFA = ReteFA('')
-        xsdPath = 'inputs/output_compito1.xsd'
+        xsdPath = 'etc/output_compito1.xsd'
         schema = xmlschema.XMLSchema(xsdPath)
         if schema.is_valid(xmlPath):
             tree = ET.parse(source=xmlPath)
@@ -2905,7 +2906,7 @@ class Main:
         :return: il diagnosticatore costruito a partire dall'XML
         """
         diag = Diagnosticatore()
-        xsdPath = 'inputs/output_compito4.xsd'
+        xsdPath = 'etc/output_compito4.xsd'
         schema = xmlschema.XMLSchema(xsdPath)
         reteFA = None
         if schema.is_valid(xmlPath):
@@ -2916,12 +2917,23 @@ class Main:
 
         return reteFA, diag
 
+
+class MyParser(argparse.ArgumentParser):
+    """
+    Parser per le opzioni da CLI
+    """
+    def error(self, message):
+        sys.stderr.write('Errore di input: %s\n' % message)
+        self.print_help()
+        sys.exit(2)
+
 #################
 ## RUN TARGETS ##
 #################
 
+
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description=
+    parser = MyParser(description=
 """retefa -
  Calcola la diagnosi di rilevanza di una rete di automi a stati finiti (ReteFA),
  a fronte di una particolare osservazione lineare effettuata sui comportamenti.
@@ -2971,7 +2983,7 @@ if __name__ == '__main__':
        conversione della ReteFA dall'XML alla struttura dati interna usando come input l'output di Compito 1.
        Utile per reti grandi dove è molto oneroso calcolare il diagnosticatore.
        
- È possibile interrompere l'esecuzione del programma in ogni momento premendo su Ctrl-C.
+ È possibile interrompere l'esecuzione del programma in ogni momento premendo Ctrl-C sulla tastiera.
        
     """)
     parser.add_argument("-c", "--compito", type=int, help="Numero del compito da eseguire", choices=[1, 2, 3, 4, 5])
@@ -2984,6 +2996,12 @@ if __name__ == '__main__':
     parser.add_argument("-p", "--precedente", action='store_true', default=False, help="Utilizza output di un compito precedente")
     parser.add_argument("-f", "--fileOutput", help="path di un file di input contenente l'output prodotto da un compito precedente")
 
+    # Controlla se vi sono argomenti
+    if len(sys.argv) == 1:
+        parser.print_help(sys.stderr)
+        sys.exit(1)
+
+    # Parsing delle opzioni in input
     args = parser.parse_args()
     print(f"Esecuzione del compito {args.compito} sull'input '{args.reteFA}'.\nPath dell'output: '{args.outputPath}'")
 
@@ -3096,7 +3114,7 @@ if __name__ == '__main__':
                             ol = args.ol.strip(']["').split(',')
                             reteFA, diag = Main.fromCompito4(args.fileOutput)
                             main_tasks.do_first()  # segna come fatto il task compito4
-                            d5 = Main.compito5(diag, ol, "")
+                            d5 = Main.compito5(diag, ol, args.outputPath)
                             main_tasks.do_first()  # segna come fatto il task compito1
                             print(f"Diagnosi ottenuta da Diagnosticatore: {d5}")
                         else:
