@@ -74,14 +74,14 @@
                 <transizione nome="d5" stato0="Sveglio" stato1="Sveglio" osservabilita="Sveglio" rilevanza="">
 				</transizione>
 
-                <transizione nome="d6" stato0="Sveglio" stato1="Sveglio" osservabilita="Dorme" rilevanza="">
+                <transizione nome="d6" stato0="Addormentato" stato1="Addormentato" osservabilita="Dorme" rilevanza="">
 				</transizione>
 
                 <transizione nome="d7" stato0="Sveglio" stato1="Addormentato" osservabilita="" rilevanza="Sonno">
 				</transizione>
 
-                <transizione nome="d8" stato0="Addormentato" stato1="Sveglio" osservabilita="" rilevanza="">
-				</transizione>
+<!--                <transizione nome="d8" stato0="Addormentato" stato1="Sveglio" osservabilita="" rilevanza="">-->
+<!--				</transizione>-->
             </transizioni>
 		</comportamento>
 

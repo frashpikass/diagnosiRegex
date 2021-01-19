@@ -495,7 +495,7 @@ class ReteFA:
         Log.new("Statistiche sulla Rete FA", "")
         Log.new("\tNumero comportamenti", f"{len(self.comportamenti)}")
         Log.new("\tNumero stati", f"{sum([len(c.stati) for c in self.comportamenti])}")
-        Log.new("\tNumero transizioni", f"{sum([len(c.stati) for c in self.comportamenti])}")
+        Log.new("\tNumero transizioni", f"{sum([len(c.transizioni) for c in self.comportamenti])}")
 
 
 class Nodo:
@@ -2343,7 +2343,7 @@ class Diagnosticatore(SpazioComportamentale):
         Log.new("\tNumero stati del diagnosticatore", f"{len(self.nodi)}")
         Log.new("\tNumero stati finali del diagnosticatore", f"{len([n for n in self.nodi if n.isFinale])}")
         Log.new("\tNumero stati nelle chiusure", f"{sum([len(n.chiusura.nodi) for n in self.nodi])}")
-        Log.new("\tNumero transizioni non osservabili (nelle chiusure)", f"{sum([len(n.chiusura.nodi) for n in self.nodi])}")
+        Log.new("\tNumero transizioni non osservabili (nelle chiusure)", f"{sum([len(n.chiusura.archi) for n in self.nodi])}")
         Log.new("\tNumero transizioni osservabili (fra gli stati del diagnosticatore)", f"{len(self.archi)}")
 
 
