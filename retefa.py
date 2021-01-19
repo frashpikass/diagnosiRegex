@@ -2401,7 +2401,7 @@ class Log:
         È basato su time.process_time()
         :return
         """
-        tempo_new = time.process_time()
+        tempo_new = time.perf_counter()
         laptime = tempo_new - Log.tempo
         Log.tempo = tempo_new
         return laptime
@@ -3051,7 +3051,7 @@ if __name__ == '__main__':
                         ol = args.ol.strip(']["').split(',')
                         r2a, scol = Main.compito2(args.reteFA, ol, args.outputPath)
                         main_tasks.do_first()  # segna come fatto il task compito2
-                        d3 = Main.compito3(scol, args.outputPath, debug_on=args.debugInfo)
+                        d3 = Main.compito3(scol, ol, args.outputPath, debug_on=args.debugInfo)
                         main_tasks.do_first()  # segna come fatto il task compito3
                         print(f"Diagnosi ottenuta da compito 3: {d3}")
                     else:
